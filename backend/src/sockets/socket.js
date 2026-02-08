@@ -1,6 +1,6 @@
-const jwt = require("jsonwebtoken");
-const User = require("../models/User");
-const { Server } = require("socket.io");
+import { verify } from "jsonwebtoken";
+import { findById } from "../models/User";
+import { Server } from "socket.io";
 
 let io;
 
@@ -20,9 +20,9 @@ const initSocket = (server) => {
         return next(new Error("No token"));
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = verify(token, process.env.JWT_SECRET);
 
-      const user = await User.findById(decoded.id);
+      const user = await findById(decoded.id);
 
       if (!user) {
         return next(new Error("User not found"));
@@ -56,4 +56,4 @@ const getIO = () => {
   return io;
 };
 
-module.exports = { initSocket, getIO };
+export default { initSocket, getIO };

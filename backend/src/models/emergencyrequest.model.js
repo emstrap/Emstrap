@@ -1,9 +1,9 @@
-const mongoose = require('mongoose');
+import { Schema, model } from 'mongoose';
 
-const emergencyRequestSchema = new mongoose.Schema(
+const emergencyRequestSchema = new Schema(
     {
       user: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: "User",
         required: true,
       },
@@ -38,13 +38,13 @@ const emergencyRequestSchema = new mongoose.Schema(
       },
   
       ambulance: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: "Ambulance",
         default: null,
       },
   
       hospital: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: "Hospital",
         default: null,
       },
@@ -52,7 +52,7 @@ const emergencyRequestSchema = new mongoose.Schema(
       rejectionHistory: [
         {
           hospital: {
-            type: mongoose.Schema.Types.ObjectId,
+            type: Schema.Types.ObjectId,
             ref: "Hospital",
           },
           rejectedAt: {
@@ -65,4 +65,4 @@ const emergencyRequestSchema = new mongoose.Schema(
     { timestamps: true }
   );
   
-  module.exports = mongoose.model("EmergencyRequest", emergencyRequestSchema);
+  export default model("EmergencyRequest", emergencyRequestSchema);

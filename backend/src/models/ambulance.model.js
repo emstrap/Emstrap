@@ -1,6 +1,6 @@
-const mongoose = require("mongoose");
+import { Schema, model } from "mongoose";
 
-const ambulanceSchema = new mongoose.Schema(
+const ambulanceSchema = new Schema(
   {
     driverName: {
       type: String,
@@ -45,7 +45,7 @@ const ambulanceSchema = new mongoose.Schema(
     },
 
     activeRequest: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "EmergencyRequest",
       default: null,
     },
@@ -53,4 +53,4 @@ const ambulanceSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Ambulance", ambulanceSchema);
+export default model("Ambulance", ambulanceSchema);
