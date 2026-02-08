@@ -11,7 +11,7 @@ const generateToken = (id) => {
 
 // REGISTER
 const registerUser = async (req, res) => {
-  const { name, email, password , address , city , phone} = req.body;
+  const { name, email, password , address ,role , city , phone} = req.body;
 
   try {
     const userExists = await User.findOne({ email });
@@ -28,12 +28,14 @@ const registerUser = async (req, res) => {
       password: hashedPassword,
       address,
       city,
+      role,
       phone
     });
 
     res.status(201).json({
       _id: user._id,
       name: user.name,
+      role: user.role,
       email: user.email,
       address: user.address,
       city: user.city,
@@ -59,6 +61,7 @@ const loginUser = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
         token: generateToken(user._id)
         
       });
