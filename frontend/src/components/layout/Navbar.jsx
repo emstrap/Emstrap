@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import logo from "../../assets/logo.png";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -8,8 +9,9 @@ export default function Navbar() {
     <nav className="bg-white shadow-md">
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex justify-between h-16 items-center">
-          
-          <h1 className="text-xl font-bold text-red-600">Emstrap</h1>
+          <Link to="/">
+            <img src={logo} alt="AmbuGo Logo" className="h-15 sm:h-12 object-contain" />
+          </Link>
 
           {/* Desktop menu */}
           <div className="hidden md:flex gap-6">
