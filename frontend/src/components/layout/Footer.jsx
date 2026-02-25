@@ -1,7 +1,11 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import logo from "../../assets/logo.png";
 
 export default function Footer() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   return (
     <footer className="bg-slate-900 text-white mt-16">
       <div className="max-w-6xl mx-auto px-4 py-10">
@@ -20,10 +24,20 @@ export default function Footer() {
           {/* Quick Links */}
           <div>
             <h3 className="font-bold mb-3">Quick Links</h3>
-            <div className="flex flex-col gap-2 text-gray-400">
-              <Link to="/">Emergency</Link>
-              <Link to="/login">Login</Link>
-              <Link to="/register">Register</Link>
+            <div className="flex flex-col gap-2 text-gray-400 items-start">
+              <Link to="/" className="hover:text-white transition-colors">Emergency</Link>
+              <button
+                onClick={() => navigate(user ? "/dashboard" : "/login")}
+                className="hover:text-white transition-colors text-left"
+              >
+                Booking
+              </button>
+              {!user && (
+                <>
+                  <Link to="/login" className="hover:text-white transition-colors">Login</Link>
+                  <Link to="/register" className="hover:text-white transition-colors">Register</Link>
+                </>
+              )}
             </div>
           </div>
 

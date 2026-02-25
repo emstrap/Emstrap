@@ -5,12 +5,12 @@ const emergencyRequestSchema = new mongoose.Schema(
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false, // Optional for anonymous 1-click emergency
     },
 
     imageUrl: {
       type: String, // Cloudinary URL
-      required: true,
+      required: false, // Making this optional for now, standard bookings might not have images
     },
 
     location: {
@@ -33,7 +33,12 @@ const emergencyRequestSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Ambulance",
       default: null,
-    }
+    },
+
+    declinedBy: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    }]
   },
   { timestamps: true }
 );

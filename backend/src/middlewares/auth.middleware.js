@@ -3,10 +3,11 @@ import User from "../models/user.model.js";
 
 const authMiddleware = async (req, res, next) => {
   try {
-    let token;
+    let token = req.cookies.token;
 
-    // 1️⃣ Check Authorization header exists
+    // Fallback if needed for Postman testing
     if (
+      !token &&
       req.headers.authorization &&
       req.headers.authorization.startsWith("Bearer")
     ) {

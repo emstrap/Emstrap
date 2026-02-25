@@ -24,8 +24,8 @@ const CameraCaptureComponent = ({ onSend }, ref) => {
 
     try {
       if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-    }
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: { ideal: "environment" } // back camera 📷
@@ -45,8 +45,8 @@ const CameraCaptureComponent = ({ onSend }, ref) => {
       streamRef.current = null;
     }
     if (videoRef.current) {
-    videoRef.current.srcObject = null;
-  }
+      videoRef.current.srcObject = null;
+    }
   };
 
   useImperativeHandle(ref, () => ({ stopCamera }));
@@ -85,8 +85,8 @@ const CameraCaptureComponent = ({ onSend }, ref) => {
   }, []);
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-4">
-      <h3 className="font-bold mb-3 text-center">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 border border-gray-100 dark:border-gray-700">
+      <h3 className="font-bold mb-3 text-center text-gray-900 dark:text-white">
         {isMobile ? "Take Patient Photo" : "Upload Patient Photo"}
       </h3>
 
@@ -112,7 +112,7 @@ const CameraCaptureComponent = ({ onSend }, ref) => {
                 type="file"
                 accept="image/*"
                 onChange={handleFileUpload}
-                className="w-full border p-3 rounded-lg"
+                className="w-full border dark:border-gray-700 p-3 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
               />
             </>
           )}

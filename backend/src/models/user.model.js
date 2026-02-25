@@ -10,11 +10,13 @@ const userSchema = new Schema({
         required: true,
         unique: true
     },
-    password: {
-        type: String,
-        required: true
+    isEmailVerified: {
+        type: Boolean,
+        default: false
     },
-    phone: {
+    emailVerificationToken: String,
+    emailVerificationTokenExpiry: Date,
+    password: {
         type: String,
         required: true
     },
@@ -26,7 +28,7 @@ const userSchema = new Schema({
         type: String,
         required: true
     },
-    role:{
+    role: {
         type: String,
         enum: ['user', 'ambulance_driver', 'hospital_admin', 'police'],
         default: 'user'

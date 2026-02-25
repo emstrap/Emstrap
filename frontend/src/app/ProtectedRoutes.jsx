@@ -2,11 +2,26 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function ProtectedRoute({ children, role }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
-  if (!user) return <Navigate to="/login" />;
+  if (loading) {
+    return <div className="p-10 text-center">Loading...</div>;
+  }
 
-  if (role && user.role !== role) return <Navigate to="/" />;
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  if (role) {
+    // Some roles might be named slightly differently in DB vs Routes
+    const isAmbulance = role === "ambulance" && (user.role === "ambulance" || user.role === "ambulance_driver");
+    const isHospital = role === "hospital" && (user.role === "hospital" || user.role === "hospital_admin");
+    const isExactMatch = user.role === role;
+
+    if (!isExactMatch && !isAmbulance && !isHospital) {
+      return <Navigate to="/" />;
+    }
+  }
 
   return children;
 }
