@@ -1,5 +1,6 @@
-import { useState, useRef } from "react";
-import axios from "axios";
+import { useState, useRef, useEffect } from "react";
+import API, { API_URL, cancelEmergency } from "../../services/api";
+import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 import Navbar from "../../components/layout/Navbar";
 import Container from "../../components/layout/Container";
@@ -9,10 +10,66 @@ import AmbulanceFound from "../../components/emergency/AmbulanceFound";
 import { useEmergency } from "../../context/EmergencyContext";
 
 export default function Emergency() {
-  const [step, setStep] = useState("start"); // start, capture, searching, accepted, timeout
+  const [step, setStepState] = useState(() => {
+    return sessionStorage.getItem("emergency_step") || "start";
+  }); // start, capture, searching, accepted, timeout
   const [driverInfo, setDriverInfo] = useState(null);
-  const { location, setLocation, photo } = useEmergency();
+  const { location, setLocation, photo, setPhoto } = useEmergency();
   const cameraRef = useRef(null);
+  const watchIdRef = useRef(null);
+  const [socket, setSocket] = useState(null);
+
+  const setStep = (newStep) => {
+    sessionStorage.setItem("emergency_step", newStep);
+    setStepState(newStep);
+  };
+
+  // On mount, if we are in "searching" state, we need to reconnect to the socket
+  useEffect(() => {
+    if (step === "searching") {
+      const requestId = sessionStorage.getItem("emergency_requestId");
+      if (requestId) {
+        reconnectSocket(requestId);
+      } else {
+        // If we lost the request ID somehow, reset
+        resetEmergency();
+      }
+    }
+  }, []);
+
+  const reconnectSocket = (requestId) => {
+    const socket = io(API_URL, { withCredentials: true });
+    socket.emit("track_request", { requestId });
+
+    // We don't know exactly how much time is left, but we can give it a fresh 60s
+    // Or we could store a timestamp in sessionStorage to calculate remaining time
+    const timer = setTimeout(() => {
+      setStep("timeout");
+      socket.disconnect();
+      // Clear persistence so refresh doesn't search again
+      setLocation(null);
+      setPhoto(null);
+      sessionStorage.removeItem("emergency_requestId");
+    }, 60000);
+
+    socket.on("ambulance_assigned", (data) => {
+      clearTimeout(timer);
+      setDriverInfo(data);
+      setStep("accepted");
+    });
+
+    socket.on("ambulance_location", (data) => {
+      setDriverInfo((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          location: { lat: data.latitude, lng: data.longitude }
+        };
+      });
+    });
+
+    setSocket(socket);
+  };
 
   const startEmergency = () => {
     // fetch location silently
@@ -32,23 +89,28 @@ export default function Emergency() {
     setStep("searching");
 
     try {
-      // Create request on backend
-      const response = await axios.post("http://localhost:5000/api/emergency", {
+      // Create request on backend using API service
+      const response = await API.post("/api/emergency", {
         latitude: location?.lat || 0,
         longitude: location?.lng || 0,
         imageUrl: photo || ""
       });
 
       const requestId = response.data.data._id;
+      sessionStorage.setItem("emergency_requestId", requestId);
 
       // Connect to websocket for real-time tracking
-      const socket = io("http://localhost:5000", { withCredentials: true });
+      const socket = io(API_URL, { withCredentials: true });
       socket.emit("track_request", { requestId });
 
       // Timeout if no one accepts in 1 minute (60000 ms)
       const timer = setTimeout(() => {
         setStep("timeout");
         socket.disconnect(); // Stop listening for this request
+        // Clear persistence
+        setLocation(null);
+        setPhoto(null);
+        sessionStorage.removeItem("emergency_requestId");
       }, 60000);
 
       // Listen for acceptance
@@ -58,9 +120,27 @@ export default function Emergency() {
         setStep("accepted");
       });
 
+      // Listen for real-time location updates
+      socket.on("ambulance_location", (data) => {
+        setDriverInfo((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            location: { lat: data.latitude, lng: data.longitude }
+          };
+        });
+      });
+
+      socket.on("emergency_cancelled", () => {
+        toast.error("This emergency request was cancelled.");
+        resetEmergency();
+      });
+
+      setSocket(socket);
+
     } catch (error) {
       console.error("Failed to call ambulance", error);
-      alert("Error reaching server. Trying again...");
+      toast.error("Error reaching server. Trying again...");
       setStep("start");
     }
   };
@@ -68,7 +148,121 @@ export default function Emergency() {
   const resetEmergency = () => {
     setStep("start");
     setDriverInfo(null);
+    setLocation(null);
+    setPhoto(null);
+    sessionStorage.removeItem("emergency_requestId");
+
+    if (socket) {
+      socket.disconnect();
+      setSocket(null);
+    }
+
+    if (watchIdRef.current) {
+      if (typeof watchIdRef.current === 'number' && watchIdRef.current > 1000) {
+        clearInterval(watchIdRef.current);
+      } else {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+      watchIdRef.current = null;
+    }
   };
+
+  const handleCancel = async () => {
+    // We'll use a custom toast for the confirmation prompt!
+    toast(
+      (t) => (
+        <div className="flex flex-col items-center p-2 md:p-4 md:min-w-[320px]">
+          <p className="font-bold text-gray-900 text-lg mb-2">Cancel Ambulance?</p>
+          <p className="text-gray-600 mb-6 text-center text-sm">Are you sure you want to cancel the emergency request?</p>
+          <div className="flex gap-3 w-full">
+            <button
+              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2.5 rounded-xl transition-colors"
+              onClick={() => toast.dismiss(t.id)}
+            >
+              No, keep it
+            </button>
+            <button
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-xl transition-colors"
+              onClick={async () => {
+                toast.dismiss(t.id);
+                try {
+                  const requestId = sessionStorage.getItem("emergency_requestId");
+                  if (requestId) {
+                    await cancelEmergency(requestId);
+                    toast.success("Emergency cancelled successfully.");
+                  }
+                  resetEmergency();
+                } catch (err) {
+                  console.error(err);
+                  toast.error("Failed to cancel emergency.");
+                }
+              }}
+            >
+              Yes, cancel
+            </button>
+          </div>
+        </div>
+      ),
+      {
+        duration: Infinity,
+        position: window.innerWidth >= 768 ? "top-center" : "bottom-center",
+        style: window.innerWidth >= 768 ? { marginTop: "30vh", maxWidth: "400px" } : {}
+      }
+    );
+  };
+
+  // Start sending live user location once accepted
+  useEffect(() => {
+    if (step === "accepted" && socket) {
+      if (navigator.geolocation) {
+        const requestId = sessionStorage.getItem("emergency_requestId");
+        watchIdRef.current = navigator.geolocation.watchPosition(
+          (pos) => {
+            const currentLoc = {
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+            };
+            socket.emit("update_user_location", {
+              requestId,
+              ...currentLoc
+            });
+            // Update local state too so the map reflects the user's latest coords
+            setLocation({ lat: currentLoc.latitude, lng: currentLoc.longitude });
+          },
+          (err) => {
+            console.error("GPS error", err);
+            // Simulate slow movement for demo if GPS unavailable
+            watchIdRef.current = setInterval(() => {
+              setLocation(prev => {
+                if (!prev) return prev;
+                const dummyLoc = {
+                  latitude: prev.lat + (Math.random() * 0.001),
+                  longitude: prev.lng + (Math.random() * 0.001)
+                };
+                socket.emit("update_user_location", {
+                  requestId,
+                  ...dummyLoc
+                });
+                return { lat: dummyLoc.latitude, lng: dummyLoc.longitude };
+              });
+            }, 5000);
+          },
+          { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+        );
+      }
+    }
+
+    return () => {
+      if (watchIdRef.current && step !== "accepted") {
+        if (typeof watchIdRef.current === 'number' && watchIdRef.current > 1000) {
+          clearInterval(watchIdRef.current);
+        } else {
+          navigator.geolocation.clearWatch(watchIdRef.current);
+        }
+        watchIdRef.current = null;
+      }
+    };
+  }, [step, socket]);
 
   return (
     <>
@@ -130,7 +324,7 @@ export default function Emergency() {
           </div>
         )}
 
-        {step === "accepted" && <AmbulanceFound driverInfo={driverInfo} />}
+        {step === "accepted" && <AmbulanceFound driverInfo={driverInfo} onCancel={handleCancel} />}
 
       </Container>
     </>

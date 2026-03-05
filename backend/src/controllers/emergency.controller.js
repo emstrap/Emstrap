@@ -54,7 +54,7 @@ export const acceptEmergency = async (req, res) => {
     io.to(`request_${id}`).emit("ambulance_assigned", {
       eta: "5 mins", // static for demo
       driverName: req.user.name || "Default Driver",
-      vehicleNumber: "KA-01-AB-1234",
+      vehicleNumber: req.user.vehicleNumber || "KA-01-AB-1234",
     });
 
     // Notify Hospitals & Police
@@ -86,11 +86,37 @@ export const declineEmergency = async (req, res) => {
   }
 };
 
+export const cancelEmergency = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const request = await emergencyRequestSchema.findByIdAndUpdate(
+      id,
+      { status: "CANCELLED" },
+      { new: true }
+    );
+
+    if (!request) {
+      return res.status(404).json({ success: false, message: "Request not found" });
+    }
+
+    const io = getIO();
+    // Notify driver tracking the request that user cancelled
+    io.to(`request_${id}`).emit("emergency_cancelled", { requestId: id });
+
+    res.status(200).json({ success: true, data: request });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const getDriverHistory = async (req, res) => {
   try {
     const driverId = req.user._id;
 
-    // Time 1 minute ago
+    const filter = req.query.filter || "24h";
+
+    // Time 1 minute ago for ongoing
     const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000);
 
     // 1. New/Ongoing Requests within 1 minute that this driver hasn't declined
@@ -100,16 +126,26 @@ export const getDriverHistory = async (req, res) => {
       declinedBy: { $ne: driverId }
     }).sort({ createdAt: -1 });
 
-    // 2. Accepted Requests by this driver
-    const accepted = await emergencyRequestSchema.find({
+    let acceptedQuery = {
       ambulance: driverId,
       status: { $in: ["AMBULANCE_ACCEPTED", "COMPLETED"] }
-    }).sort({ updatedAt: -1 });
+    };
+
+    let rejectedQuery = {
+      declinedBy: driverId
+    };
+
+    if (filter === "24h") {
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      acceptedQuery.updatedAt = { $gte: oneDayAgo };
+      rejectedQuery.updatedAt = { $gte: oneDayAgo };
+    }
+
+    // 2. Accepted Requests by this driver
+    const accepted = await emergencyRequestSchema.find(acceptedQuery).sort({ updatedAt: -1 });
 
     // 3. Rejected Requests by this driver
-    const rejected = await emergencyRequestSchema.find({
-      declinedBy: driverId
-    }).sort({ updatedAt: -1 });
+    const rejected = await emergencyRequestSchema.find(rejectedQuery).sort({ updatedAt: -1 });
 
     res.status(200).json({
       success: true,

@@ -33,6 +33,10 @@ const userSchema = new Schema({
         enum: ['user', 'ambulance_driver', 'hospital_admin', 'police'],
         default: 'user'
     },
+    vehicleNumber: {
+        type: String,
+        required: false
+    },
     createdAt: {
         type: Date,
         default: Date.now

@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
+import { API_URL } from "../../services/api";
 import { getDriverHistory, acceptEmergency, declineEmergency } from "../../services/api";
 import Navbar from "../../components/layout/Navbar";
 import Container from "../../components/layout/Container";
+import LiveTrackingMap from "../../components/map/LiveTrackingMap";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 
@@ -12,6 +14,11 @@ export default function AmbulanceDashboard() {
   const [acceptedHistory, setAcceptedHistory] = useState([]);
   const [rejectedHistory, setRejectedHistory] = useState([]);
   const [socket, setSocket] = useState(null);
+
+  // Real-time Driver Tracking State
+  const [driverLocation, setDriverLocation] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const watchIdRef = useRef(null);
 
   // Expiry in milliseconds (1 min)
   const EXPIRY_MS = 1 * 60 * 1000;
@@ -30,7 +37,7 @@ export default function AmbulanceDashboard() {
   useEffect(() => {
     fetchHistory();
 
-    const newSocket = io("http://localhost:5000", { withCredentials: true });
+    const newSocket = io(API_URL, { withCredentials: true });
     setSocket(newSocket);
 
     // Join room
@@ -49,7 +56,17 @@ export default function AmbulanceDashboard() {
       setRequests((prev) => prev.filter(r => r._id !== data.requestId));
     });
 
-    return () => newSocket.close();
+    return () => {
+      newSocket.close();
+      if (watchIdRef.current) {
+        // Clear either interval or watch, depending on what it is
+        if (typeof watchIdRef.current === 'number' && watchIdRef.current > 1000) {
+          clearInterval(watchIdRef.current);
+        } else {
+          navigator.geolocation.clearWatch(watchIdRef.current);
+        }
+      }
+    };
   }, []);
 
   // Cleanup effect: Remove requests older than 10 mins from the Active screen
@@ -79,14 +96,73 @@ export default function AmbulanceDashboard() {
       setRequests(requests.filter((r) => r._id !== id));
 
       if (socket) {
-        // Start sending fake location updates for the demo
-        setInterval(() => {
-          socket.emit("update_location", {
-            requestId: id,
-            latitude: 12.9716, // dummy coords
-            longitude: 77.5946
-          });
-        }, 2000);
+        // Driver must join the room to receive user updates and cancellations
+        socket.emit("track_request", { requestId: id });
+
+        socket.on("user_location", (data) => {
+          if (data.requestId === id) {
+            setUserLocation({ lat: data.latitude, lng: data.longitude });
+          }
+        });
+
+        socket.on("emergency_cancelled", (data) => {
+          if (data.requestId === id) {
+            toast.error("The patient has cancelled the emergency request.");
+            // Stop tracking and clean up
+            if (watchIdRef.current) {
+              if (typeof watchIdRef.current === 'number' && watchIdRef.current > 1000) {
+                clearInterval(watchIdRef.current);
+              } else {
+                navigator.geolocation.clearWatch(watchIdRef.current);
+              }
+            }
+            setDriverLocation(null);
+            setUserLocation(null);
+            fetchHistory(); // refresh the dash to move it out of accepted
+            socket.off("user_location");
+            socket.off("emergency_cancelled");
+          }
+        });
+
+        // Start watching actual GPS location
+        if (navigator.geolocation) {
+          watchIdRef.current = navigator.geolocation.watchPosition(
+            (pos) => {
+              const currentLoc = {
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+              };
+
+              setDriverLocation(currentLoc);
+
+              // Broadcast live position to the user
+              socket.emit("update_location", {
+                requestId: id,
+                ...currentLoc
+              });
+            },
+            (err) => {
+              console.error("Error watching position", err);
+              toast.error("GPS signal lost. Falling back to simulated location...");
+
+              // Fallback to simulated location if watchPosition fails
+              watchIdRef.current = setInterval(() => {
+                const dummyLoc = {
+                  lat: 12.9716 + (Math.random() * 0.005),
+                  lng: 77.5946 + (Math.random() * 0.005)
+                };
+                setDriverLocation(dummyLoc);
+                socket.emit("update_location", {
+                  requestId: id,
+                  ...dummyLoc
+                });
+              }, 3000);
+            },
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+          );
+        } else {
+          toast.error("Geolocation is not supported by your browser");
+        }
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Error accepting request");
@@ -142,8 +218,18 @@ export default function AmbulanceDashboard() {
       )}
 
       {type === "accepted" && (
-        <div className="mt-4 pt-3 border-t dark:border-gray-700 border-dashed text-green-600 font-semibold text-sm">
-          ✓ Accepted & Assigned to you
+        <div className="mt-4 pt-4 border-t dark:border-gray-700">
+          <div className="text-green-600 font-semibold mb-4 text-center">
+            ✓ Accepted & Assigned to you
+          </div>
+
+          <div className="w-full relative z-0">
+            <LiveTrackingMap
+              userLocation={userLocation || { lat: req.location?.latitude, lng: req.location?.longitude }}
+              driverLocation={driverLocation}
+              height="300px"
+            />
+          </div>
         </div>
       )}
 

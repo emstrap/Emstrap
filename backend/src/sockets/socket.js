@@ -40,6 +40,13 @@ export const initSocket = (server) => {
       }
     });
 
+    // User sends live location
+    socket.on("update_user_location", (data) => {
+      if (data.requestId) {
+        io.to(`request_${data.requestId}`).emit("user_location", data);
+      }
+    });
+
     // User joins a specific request room to track their ambulance
     socket.on("track_request", (data) => {
       if (data.requestId) {

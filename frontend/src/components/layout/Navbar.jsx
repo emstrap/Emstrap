@@ -50,7 +50,7 @@ export default function Navbar() {
                 Booking History
               </Link>
             )}
-            {(user?.role === 'user') && (
+            {(!user || user?.role === 'user') && (
               <button
                 onClick={() => navigate(user ? "/booking" : "/login")}
                 className="text-gray-700 dark:text-gray-200 hover:text-red-600 transition-colors"

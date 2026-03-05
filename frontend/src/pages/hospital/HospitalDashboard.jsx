@@ -7,7 +7,7 @@ export default function HospitalDashboard() {
   const [alerts, setAlerts] = useState([]);
 
   useEffect(() => {
-    const newSocket = io("http://localhost:5000", { withCredentials: true });
+    const newSocket = io(API_URL, { withCredentials: true });
     newSocket.emit("join_hospital", {});
 
     newSocket.on("hospital_alert", (data) => {

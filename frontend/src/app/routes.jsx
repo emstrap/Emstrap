@@ -5,7 +5,7 @@ import Register from "../pages/auth/Register";
 import Tracking from "../components/emergency/Tracking";
 import Booking from "../pages/booking/Booking";
 import DashboardRouter from "../pages/dashboard/DashboardRouter";
-import UserProfile from "../pages/User/UserProfile";
+import UserProfile from "../pages/user/UserProfile";
 import VerifyEmail from "../pages/auth/VerifyEmail";
 import ProtectedRoute from "./ProtectedRoutes";
 import DriverHistory from "../pages/ambulance/DriverHistory";

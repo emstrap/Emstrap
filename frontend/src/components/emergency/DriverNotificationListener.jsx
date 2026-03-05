@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { API_URL } from "../../services/api";
 import { io } from "socket.io-client";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
@@ -27,7 +28,7 @@ export default function DriverNotificationListener() {
             Notification.requestPermission();
         }
 
-        const socket = io("http://localhost:5000", { withCredentials: true });
+        const socket = io(API_URL, { withCredentials: true });
 
         socket.emit("join_ambulance", {});
 

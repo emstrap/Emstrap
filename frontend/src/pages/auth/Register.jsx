@@ -16,6 +16,7 @@ export default function Register() {
     city: "",
     address: "",
     role: "",
+    vehicleNumber: "",
   });
 
   const [status, setStatus] = useState("idle");
@@ -105,6 +106,14 @@ export default function Register() {
                   <option value="hospital_admin">Hospital Admin</option>
                   <option value="police">Police</option>
                 </select>
+
+                {form.role === "ambulance_driver" && (
+                  <input name="vehicleNumber"
+                    className="w-full border dark:border-gray-700 p-3.5 rounded-xl mb-6 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
+                    placeholder="Vehicle Number (e.g. MH-12-AB-3456)" onChange={handleChange} required
+                    disabled={status === "loading"}
+                  />
+                )}
 
                 <button
                   onClick={handleRegister}

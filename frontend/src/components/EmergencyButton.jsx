@@ -1,9 +1,10 @@
 import { startEmergency } from "../services/emergency.service";
+import toast from "react-hot-toast";
 
 export default function EmergencyButton() {
   const handleClick = async () => {
     const result = await startEmergency();
-    alert(result.message);
+    toast.success(result.message);
   };
 
   return (

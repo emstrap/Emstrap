@@ -1,7 +1,10 @@
 import axios from "axios";
 
+
+export const API_URL = import.meta.env.VITE_API_URL;
+
 const API = axios.create({
-  baseURL: "http://localhost:5000",
+  baseURL: API_URL,
   withCredentials: true // Extremely important to let cookies route through Origin
 });
 
@@ -24,8 +27,8 @@ export const verifyEmailAPI = async (token) => {
 };
 
 // EMERGENCY APIs
-export const getDriverHistory = async () => {
-  const res = await API.get("/api/emergency/driver/history");
+export const getDriverHistory = async (filter = "24h") => {
+  const res = await API.get(`/api/emergency/driver/history?filter=${filter}`);
   return res.data;
 };
 
@@ -36,6 +39,11 @@ export const acceptEmergency = async (id) => {
 
 export const declineEmergency = async (id) => {
   const res = await API.put(`/api/emergency/${id}/decline`);
+  return res.data;
+};
+
+export const cancelEmergency = async (id) => {
+  const res = await API.put(`/api/emergency/${id}/cancel`);
   return res.data;
 };
 

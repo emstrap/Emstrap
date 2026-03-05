@@ -6,6 +6,7 @@ import {
   forwardRef,
 } from "react";
 import { useEmergency } from "../../context/EmergencyContext";
+import toast from "react-hot-toast";
 
 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -35,7 +36,7 @@ const CameraCaptureComponent = ({ onSend }, ref) => {
       streamRef.current = stream;
       videoRef.current.srcObject = stream;
     } catch {
-      alert("Camera permission denied");
+      toast.error("Camera permission denied");
     }
   };
 

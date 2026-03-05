@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import API from "../../services/api";
+import { getDriverHistory } from "../../services/api";
 import Navbar from "../../components/layout/Navbar";
 import Container from "../../components/layout/Container";
 import toast from "react-hot-toast";
@@ -13,11 +13,9 @@ export default function DriverHistory() {
     useEffect(() => {
         const fetchHistory = async () => {
             try {
-                // We know we added a GET /history to emergency.controller.js
-                // If not using that, we fetch driver specific bookings
-                const res = await API.get("/api/emergency/driver/history");
-                setAcceptedHistory(res.data.data?.accepted || []);
-                setRejectedHistory(res.data.data?.rejected || []);
+                const res = await getDriverHistory("all");
+                setAcceptedHistory(res.data?.accepted || []);
+                setRejectedHistory(res.data?.rejected || []);
             } catch (err) {
                 toast.error("Failed to load history");
             } finally {

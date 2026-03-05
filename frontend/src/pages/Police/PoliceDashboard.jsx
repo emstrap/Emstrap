@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
+import { API_URL } from "../../services/api";
 import Navbar from "../../components/layout/Navbar";
 import Container from "../../components/layout/Container";
 
@@ -7,7 +8,7 @@ export default function PoliceDashboard() {
     const [alerts, setAlerts] = useState([]);
 
     useEffect(() => {
-        const newSocket = io("http://localhost:5000", { withCredentials: true });
+        const newSocket = io(API_URL, { withCredentials: true });
         newSocket.emit("join_police", {});
 
         newSocket.on("police_alert", (data) => {

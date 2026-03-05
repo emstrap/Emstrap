@@ -26,7 +26,7 @@ const generateTokenAndSetCookie = (user, res) => {
 
 // REGISTER
 export const registerUser = async (req, res) => {
-  const { name, email, password, address, role, city } = req.body;
+  const { name, email, password, address, role, city, vehicleNumber } = req.body;
 
   try {
     const userExists = await User.findOne({ email });
@@ -82,6 +82,7 @@ export const registerUser = async (req, res) => {
       address,
       city,
       role: userRole,
+      vehicleNumber: userRole === "ambulance_driver" ? vehicleNumber : undefined,
       emailVerificationToken: hashedToken,
       emailVerificationTokenExpiry: Date.now() + 24 * 60 * 60 * 1000 // 24 hours expires
     });
