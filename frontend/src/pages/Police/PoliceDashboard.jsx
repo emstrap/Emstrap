@@ -29,7 +29,7 @@ export default function PoliceDashboard() {
                     {alerts.map((alert, i) => (
                         <div key={i} className="p-4 border border-blue-200 rounded-xl bg-blue-50">
                             <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full uppercase">Alert received</span>
-                            <p className="mt-2 text-sm text-gray-700">An ambulance was dispatched to an emergency location.</p>
+                            <p className="mt-2 text-sm text-gray-700">Anambulance was dispatched to an emergency location.</p>
                             <p className="mt-1 text-xs text-gray-500">Location: {alert.location?.latitude}, {alert.location?.longitude}</p>
                         </div>
                     ))}
