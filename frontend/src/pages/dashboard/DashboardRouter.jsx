@@ -3,7 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import UserDashboard from "../user/UserDashboard";
 import AmbulanceDashboard from "../ambulance/AmbulanceDashboard";
 import HospitalDashboard from "../hospital/HospitalDashboard";
-import PoliceDashboard from "../police/PoliceDashboard";
+import PoliceDashboard from "../Police/PoliceDashboard";
 
 export default function DashboardRouter() {
     const { user, loading } = useAuth();
