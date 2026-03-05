@@ -16,7 +16,7 @@ const generateTokenAndSetCookie = (user, res) => {
   res.cookie("token", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production", // True in production (HTTPS)
-    sameSite: "Strict", // Prevents CSRF
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Strict", // "None" allows cross-origin on Netlify
     path: "/",
     maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
   });
@@ -184,7 +184,7 @@ export const logoutUser = async (req, res) => {
   res.cookie("token", "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "Strict",
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Strict",
     path: "/",
     expires: new Date(0) // Expire immediately
   });
