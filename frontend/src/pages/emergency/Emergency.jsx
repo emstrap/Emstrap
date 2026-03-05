@@ -298,7 +298,7 @@ export default function Emergency() {
         {/* STEP 2 — CAMERA + LOCATION */}
         {step === "capture" && (
           <div className="mt-10 max-w-md mx-auto">
-            <CameraCapture ref={cameraRef} onSend={handleSendEmergency} />
+            <CameraCapture ref={cameraRef} onSend={handleSendEmergency} onCancel={resetEmergency} />
           </div>
         )}
 

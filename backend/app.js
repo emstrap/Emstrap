@@ -10,7 +10,7 @@ import bookingRoutes from "./src/routes/booking.route.js";
 const app = express();
 
 app.use(cors({
-    origin: "http://localhost:5173", // Must be specific for credentials
+    origin: process.env.FRONTEND_URL,
     credentials: true
 }));
 app.use(json({ limit: "50mb" }));

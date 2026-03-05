@@ -10,7 +10,7 @@ import toast from "react-hot-toast";
 
 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-const CameraCaptureComponent = ({ onSend }, ref) => {
+const CameraCaptureComponent = ({ onSend, onCancel }, ref) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
@@ -96,14 +96,22 @@ const CameraCaptureComponent = ({ onSend }, ref) => {
           {/* 📱 MOBILE CAMERA */}
           {isMobile ? (
             <>
-              <video ref={videoRef} autoPlay className="rounded-xl w-full" />
+              <video ref={videoRef} autoPlay className="rounded-xl w-full object-cover" />
 
-              <button
-                onClick={capturePhoto}
-                className="mt-4 w-full bg-green-600 text-white py-3 rounded-lg"
-              >
-                Capture Photo
-              </button>
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={onCancel}
+                  className="w-1/3 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={capturePhoto}
+                  className="w-2/3 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-xl transition-colors"
+                >
+                  Capture Photo
+                </button>
+              </div>
             </>
           ) : (
             /* 💻 DESKTOP UPLOAD */
@@ -113,8 +121,14 @@ const CameraCaptureComponent = ({ onSend }, ref) => {
                 type="file"
                 accept="image/*"
                 onChange={handleFileUpload}
-                className="w-full border dark:border-gray-700 p-3 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
+                className="w-full border dark:border-gray-700 p-3 rounded-xl mb-4 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100"
               />
+              <button
+                onClick={onCancel}
+                className="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 rounded-xl transition-colors"
+              >
+                Go Back
+              </button>
             </>
           )}
         </>
@@ -125,14 +139,14 @@ const CameraCaptureComponent = ({ onSend }, ref) => {
           <div className="flex gap-3 mt-4">
             <button
               onClick={retakePhoto}
-              className="w-1/2 bg-gray-500 text-white py-3 rounded-lg"
+              className="w-1/2 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 rounded-xl transition-colors"
             >
               Retake
             </button>
 
             <button
               onClick={onSend}
-              className="w-1/2 bg-red-600 text-white py-3 rounded-lg"
+              className="w-1/2 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-xl transition-colors"
             >
               Send Emergency
             </button>
