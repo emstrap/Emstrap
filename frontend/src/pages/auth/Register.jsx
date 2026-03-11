@@ -136,7 +136,7 @@ export default function Register() {
                     className="text-red-500 hover:text-red-600 font-semibold cursor-pointer transition-colors"
                     onClick={() => navigate("/login")}
                   >
-                    Login here
+                    Login
                   </span>
                 </p>
               </>

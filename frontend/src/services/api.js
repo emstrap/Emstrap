@@ -26,6 +26,18 @@ export const verifyEmailAPI = async (token) => {
   return res.data;
 };
 
+// FORGOT PASSWORD API
+export const forgotPasswordAPI = async (email) => {
+  const res = await API.post("/auth/forgot-password", { email });
+  return res.data;
+};
+
+// RESET PASSWORD API
+export const resetPasswordAPI = async (token, password) => {
+  const res = await API.put(`/auth/reset-password/${token}`, { password });
+  return res.data;
+};
+
 // EMERGENCY APIs
 export const getDriverHistory = async (filter = "24h") => {
   const res = await API.get(`/api/emergency/driver/history?filter=${filter}`);

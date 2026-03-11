@@ -287,7 +287,7 @@ export default function Emergency() {
                 text-white font-bold
                 px-10 py-6
                 text-xl sm:text-2xl lg:text-3xl
-                rounded-3xl shadow-xl
+                rounded-2xl shadow-xl
               "
             >
               CALL AMBULANCE

@@ -53,11 +53,20 @@ export default function Login() {
             />
 
             <input
-              className="w-full border dark:border-gray-700 p-3.5 rounded-xl mb-8 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
+              className="w-full border dark:border-gray-700 p-3.5 rounded-xl mb-2 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
               type="password"
               placeholder="Password"
               onChange={(e) => setPassword(e.target.value)}
             />
+
+            <div className="flex justify-end mb-6">
+              <span
+                className="text-sm text-red-500 hover:text-red-600 font-semibold cursor-pointer transition-colors"
+                onClick={() => navigate("/forgot-password")}
+              >
+                Forgot Password?
+              </span>
+            </div>
 
             <button
               onClick={handleLogin}
@@ -71,7 +80,7 @@ export default function Login() {
                 className="text-red-500 hover:text-red-600 font-semibold cursor-pointer transition-colors"
                 onClick={() => navigate("/register")}
               >
-                Register here
+                Register
               </span>
             </p>
           </div>
