@@ -10,6 +10,11 @@ const userSchema = new Schema({
         required: true,
         unique: true
     },
+    mobile: {
+        type: String,
+        required: true,
+        match: [/^[6-9]\d{9}$/, 'Please enter a valid 10-digit Indian mobile number']
+    },
     isEmailVerified: {
         type: Boolean,
         default: false

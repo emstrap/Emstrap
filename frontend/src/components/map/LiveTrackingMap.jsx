@@ -1,130 +1,168 @@
-import { useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet-routing-machine";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { 
+  GoogleMap, 
+  useJsApiLoader, 
+  MarkerF, 
+  DirectionsService, 
+  DirectionsRenderer,
+  InfoWindowF
+} from "@react-google-maps/api";
 
-// Custom icons
-const driverIcon = new L.Icon({
-  iconUrl: "https://cdn-icons-png.flaticon.com/512/3203/3203071.png", // Ambulance Icon
-  iconSize: [40, 40],
-  iconAnchor: [20, 20],
-  popupAnchor: [0, -20],
-});
+const containerStyle = {
+  width: "100%",
+  height: "100%",
+};
 
-const userIcon = new L.Icon({
-  iconUrl: "https://cdn-icons-png.flaticon.com/512/9131/9131529.png", // Patient/User Icon
-  iconSize: [40, 40],
-  iconAnchor: [20, 20],
-  popupAnchor: [0, -20],
-});
+// Custom icons - Google Maps markers use simple SVG or URL
+const driverIconUrl = "https://cdn-icons-png.flaticon.com/512/3203/3203071.png"; // Ambulance Icon
+const userIconUrl = "https://cdn-icons-png.flaticon.com/512/9131/9131529.png"; // Patient/User Icon
 
-
-// Auto-fit bounds component
-function FitBounds({ userLoc, driverLoc }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (userLoc?.lat && driverLoc?.lat) {
-      const bounds = L.latLngBounds([userLoc, driverLoc]);
-      // Pad bounds so markers aren't on the very edge
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
-    } else if (userLoc?.lat) {
-      map.setView(userLoc, 15);
-    } else if (driverLoc?.lat) {
-      map.setView(driverLoc, 15);
-    }
-  }, [map, userLoc, driverLoc]);
-
-  return null;
-}
-
-// Routing Machine Component
-function Routing({ userLoc, driverLoc }) {
-  const map = useMap();
-  const routingControlRef = useRef(null);
-
-  useEffect(() => {
-    if (!map || !userLoc?.lat || !driverLoc?.lat) return;
-
-    if (!routingControlRef.current) {
-      routingControlRef.current = L.Routing.control({
-        waypoints: [
-          L.latLng(driverLoc.lat, driverLoc.lng),
-          L.latLng(userLoc.lat, userLoc.lng)
-        ],
-        lineOptions: {
-          styles: [{ color: "#EF4444", weight: 5, fillOpacity: 0.8 }] // Red line
-        },
-        createMarker: () => null, // We provide our own distinct markers
-        addWaypoints: false,
-        routeWhileDragging: false,
-        fitSelectedRoutes: false,
-        showAlternatives: false,
-        show: false // Hide the step-by-step turn instructions box
-      }).addTo(map);
-    } else {
-      // Update waypoints if driver moves
-      routingControlRef.current.setWaypoints([
-        L.latLng(driverLoc.lat, driverLoc.lng),
-        L.latLng(userLoc.lat, userLoc.lng)
-      ]);
-    }
-
-    return () => {
-      // Cleanup routing control on unmount
-      if (routingControlRef.current && map) {
-        try {
-          map.removeControl(routingControlRef.current);
-          routingControlRef.current = null;
-        } catch (e) {
-          console.error("Cleanup error routing control", e);
-        }
-      }
-    };
-  }, [map, userLoc, driverLoc]);
-
-  return null;
-}
+const libraries = ["places"];
 
 export default function LiveTrackingMap({ userLocation, driverLocation, height = "400px" }) {
-  // Default center if nothing provided
+  const { isLoaded } = useJsApiLoader({
+    id: "google-map-script",
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "", // User needs to provide this
+    libraries: libraries
+  });
+
+  const [map, setMap] = useState(null);
+  const [directions, setDirections] = useState(null);
+  const [showDriverPopup, setShowDriverPopup] = useState(false);
+  const [showUserPopup, setShowUserPopup] = useState(false);
+
+  const onLoad = useCallback(function callback(mapInstance) {
+    setMap(mapInstance);
+  }, []);
+
+  const onUnmount = useCallback(function callback() {
+    setMap(null);
+  }, []);
+
+  // Effect to calculate directions when both locations are available
+  useEffect(() => {
+    if (isLoaded && userLocation?.lat && driverLocation?.lat) {
+      const directionsService = new window.google.maps.DirectionsService();
+      directionsService.route(
+        {
+          origin: new window.google.maps.LatLng(driverLocation.lat, driverLocation.lng),
+          destination: new window.google.maps.LatLng(userLocation.lat, userLocation.lng),
+          travelMode: window.google.maps.TravelMode.DRIVING,
+        },
+        (result, status) => {
+          if (status === window.google.maps.DirectionsStatus.OK) {
+            setDirections(result);
+          } else {
+            console.error(`error fetching directions ${result}`);
+          }
+        }
+      );
+    }
+  }, [isLoaded, userLocation, driverLocation]);
+
+  // Effect to fit bounds
+  useEffect(() => {
+    if (map && (userLocation?.lat || driverLocation?.lat)) {
+      const bounds = new window.google.maps.LatLngBounds();
+      if (userLocation?.lat) bounds.extend(userLocation);
+      if (driverLocation?.lat) bounds.extend(driverLocation);
+      
+      if (userLocation?.lat && driverLocation?.lat) {
+        map.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
+      } else {
+        map.panTo(userLocation?.lat ? userLocation : driverLocation);
+        map.setZoom(15);
+      }
+    }
+  }, [map, userLocation, driverLocation]);
+
+  if (!isLoaded) return <div className="w-full bg-gray-100 dark:bg-gray-800 animate-pulse rounded-2xl flex items-center justify-center" style={{ height }}>
+    <p className="text-gray-500 font-medium">Loading Google Maps...</p>
+  </div>;
+
   const center = (userLocation?.lat ? userLocation : null)
     || (driverLocation?.lat ? driverLocation : null)
     || { lat: 20.5937, lng: 78.9629 };
 
   return (
-    <div className="w-full rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-700 relative z-0">
-      <MapContainer
+    <div className={`w-full h-full min-h-[${height}] rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-700 relative z-0 flex flex-col flex-1`}>
+      {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
+        <div className="absolute top-2 left-2 z-10 bg-yellow-100 border border-yellow-400 text-yellow-700 px-3 py-1 rounded text-xs">
+          Missing Google Maps API Key
+        </div>
+      )}
+      <GoogleMap
+        mapContainerStyle={containerStyle}
         center={center}
         zoom={13}
-        style={{ height, width: "100%" }}
-        zoomControl={false}
+        onLoad={onLoad}
+        onUnmount={onUnmount}
+        options={{
+          zoomControl: false,
+          mapTypeControl: false,
+          scaleControl: false,
+          streetViewControl: false,
+          rotateControl: false,
+          fullscreenControl: false,
+          styles: [
+            {
+              featureType: "poi",
+              stylers: [{ visibility: "off" }],
+            },
+          ],
+        }}
       >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; OpenStreetMap contributors'
-        />
-
         {/* User Marker */}
         {userLocation?.lat && (
-          <Marker position={userLocation} icon={userIcon}>
-            <Popup>Patient Location</Popup>
-          </Marker>
+          <MarkerF 
+            position={userLocation} 
+            icon={{
+              url: userIconUrl,
+              scaledSize: new window.google.maps.Size(40, 40),
+            }}
+            onClick={() => setShowUserPopup(true)}
+          >
+            {showUserPopup && (
+              <InfoWindowF onCloseClick={() => setShowUserPopup(false)}>
+                <div className="text-sm font-medium">Patient Location</div>
+              </InfoWindowF>
+            )}
+          </MarkerF>
         )}
 
         {/* Driver Marker */}
         {driverLocation?.lat && (
-          <Marker position={driverLocation} icon={driverIcon}>
-            <Popup>Ambulance</Popup>
-          </Marker>
+          <MarkerF 
+            position={driverLocation} 
+            icon={{
+              url: driverIconUrl,
+              scaledSize: new window.google.maps.Size(40, 40),
+            }}
+            onClick={() => setShowDriverPopup(true)}
+          >
+             {showDriverPopup && (
+              <InfoWindowF onCloseClick={() => setShowDriverPopup(false)}>
+                <div className="text-sm font-medium">Ambulance</div>
+              </InfoWindowF>
+            )}
+          </MarkerF>
         )}
 
-        <FitBounds userLoc={userLocation} driverLoc={driverLocation} />
-
-        {userLocation?.lat && driverLocation?.lat && (
-          <Routing userLoc={userLocation} driverLoc={driverLocation} />
+        {/* Route Lines */}
+        {directions && (
+          <DirectionsRenderer
+            directions={directions}
+            options={{
+              suppressMarkers: true,
+              polylineOptions: {
+                strokeColor: "#EF4444",
+                strokeWeight: 5,
+                strokeOpacity: 0.8,
+              },
+            }}
+          />
         )}
-      </MapContainer>
+      </GoogleMap>
     </div>
   );
 }

@@ -144,10 +144,10 @@ export default function Navbar() {
                 Emergency
               </Link>
               <button
-                onClick={() => { setOpen(false); navigate(user ? "/booking" : "/login"); }}
+                onClick={() => { setOpen(false); navigate("/login"); }}
                 className="text-lg font-medium text-left text-gray-700 dark:text-gray-200 hover:text-red-600 transition-colors"
               >
-                {user?.role === 'ambulance' || user?.role === 'ambulance_driver' ? 'Booking History' : 'Booking'}
+                Booking
               </button>
               <Link
                 to="/login"
@@ -191,13 +191,22 @@ export default function Navbar() {
                     Emergency
                   </Link>
                 )}
-                <button
-                  onClick={() => { setOpen(false); navigate(user ? "/booking" : "/login"); }}
-                  className="w-full text-left px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl font-medium transition-colors text-lg"
-                >
-                  {user?.role === 'ambulance' || user?.role === 'ambulance_driver' ? 'Booking History' : 'Booking'}
-                </button>
-
+                {(!user || user?.role === 'user') && (
+                  <button
+                    onClick={() => { setOpen(false); navigate(user ? "/booking" : "/login"); }}
+                    className="w-full text-left px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl font-medium transition-colors text-lg"
+                  >
+                    Booking
+                  </button>
+                )}
+                {(user?.role === 'ambulance' || user?.role === 'ambulance_driver') && (
+                  <button
+                    onClick={() => { setOpen(false); navigate(user ? "/booking-history" : "/login"); }}
+                    className="w-full text-left px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl font-medium transition-colors text-lg"
+                  >
+                    Booking History
+                  </button>
+                )}
                 <button
                   onClick={() => { setOpen(false); toggleTheme(); }}
                   className="w-full text-left px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl font-medium transition-colors text-lg"

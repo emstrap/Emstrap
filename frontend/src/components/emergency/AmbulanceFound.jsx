@@ -16,11 +16,11 @@ export default function AmbulanceFound({ driverInfo, onCancel }) {
         <p className="text-gray-700 dark:text-gray-300">Vehicle: {driverInfo?.vehicleNumber || "Unknown"}</p>
       </div>
 
-      <div className="mt-6 w-full max-w-3xl mx-auto -mt-6 pt-6 -z-10 relative">
+      <div className="mt-6 w-full max-w-3xl mx-auto -mt-6 pt-6 -z-10 relative" style={{ height: "50vh", minHeight: "400px" }}>
         <LiveTrackingMap
           userLocation={userLocation}
           driverLocation={driverInfo?.location}
-          height="50vh"
+          height="100%"
         />
       </div>
 

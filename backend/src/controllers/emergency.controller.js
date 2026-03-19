@@ -135,10 +135,16 @@ export const getDriverHistory = async (req, res) => {
       declinedBy: driverId
     };
 
+    let cancelledQuery = {
+      ambulance: driverId,
+      status: "CANCELLED"
+    };
+
     if (filter === "24h") {
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
       acceptedQuery.updatedAt = { $gte: oneDayAgo };
       rejectedQuery.updatedAt = { $gte: oneDayAgo };
+      cancelledQuery.updatedAt = { $gte: oneDayAgo };
     }
 
     // 2. Accepted Requests by this driver
@@ -147,12 +153,16 @@ export const getDriverHistory = async (req, res) => {
     // 3. Rejected Requests by this driver
     const rejected = await emergencyRequestSchema.find(rejectedQuery).sort({ updatedAt: -1 });
 
+    // 4. Cancelled Requests by user
+    const cancelled = await emergencyRequestSchema.find(cancelledQuery).sort({ updatedAt: -1 });
+
     res.status(200).json({
       success: true,
       data: {
         ongoing,
         accepted,
-        rejected
+        rejected,
+        cancelled
       }
     });
   } catch (error) {

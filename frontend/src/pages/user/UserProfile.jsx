@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import API from "../../services/api";
 import Navbar from "../../components/layout/Navbar";
 import Container from "../../components/layout/Container";
@@ -11,12 +11,36 @@ export default function UserProfile() {
     const [isEditing, setIsEditing] = useState(false);
 
     const [formData, setFormData] = useState({
-        name: user?.name || "",
-        email: user?.email || "",
-        phone: user?.phone || "",
-        city: user?.city || "",
-        address: user?.address || "",
+        name: "",
+        email: "",
+        mobile: "",
+        city: "",
+        address: "",
     });
+
+    const [profileUser, setProfileUser] = useState(user);
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                // Fetch fresh profile data directly from DB
+                const res = await API.get("/auth/me");
+                const freshUser = res.data;
+                setProfileUser(freshUser);
+                setFormData({
+                    name: freshUser?.name || "",
+                    email: freshUser?.email || "",
+                    mobile: freshUser?.mobile || "",
+                    city: freshUser?.city || "",
+                    address: freshUser?.address || "",
+                });
+            } catch (error) {
+                console.error("Failed to load profile", error);
+            }
+        };
+
+        fetchProfile();
+    }, []);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -26,12 +50,12 @@ export default function UserProfile() {
         e.preventDefault();
         setLoading(true);
         try {
-            const res = await API.put("/api/auth/profile", formData);
+            const res = await API.put("/auth/profile", formData);
             toast.success("Profile updated successfully!");
-            // Update global context with new user data
-            if (res.data.user) {
-                loginUser(res.data.user);
-            }
+            // Update local state and global context
+            const updated = res.data.user;
+            setProfileUser(updated);
+            loginUser(updated);
             setIsEditing(false);
         } catch (error) {
             toast.error(error.response?.data?.message || "Failed to update profile");
@@ -47,12 +71,12 @@ export default function UserProfile() {
                 <div className="max-w-xl mx-auto mt-10 p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 transition-colors">
                     <div className="flex flex-col items-center mb-8">
                         <div className="w-24 h-24 rounded-full bg-red-600 text-white font-bold text-4xl flex items-center justify-center mb-4 shadow-lg">
-                            {user?.name?.charAt(0).toUpperCase() || "U"}
+                            {profileUser?.name?.charAt(0).toUpperCase() || "U"}
                         </div>
                         {!isEditing && (
                             <>
-                                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{user?.name || "User"}</h2>
-                                <p className="text-gray-500 dark:text-gray-400 capitalize">{user?.role?.replace('_', ' ') || "User"}</p>
+                                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{profileUser?.name || "User"}</h2>
+                                <p className="text-gray-500 dark:text-gray-400 capitalize">{profileUser?.role?.replace('_', ' ') || "User"}</p>
                             </>
                         )}
                         {isEditing && (
@@ -65,23 +89,23 @@ export default function UserProfile() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">Full Name</p>
-                                    <p className="font-semibold text-gray-900 dark:text-gray-100">{user?.name || "N/A"}</p>
+                                    <p className="font-semibold text-gray-900 dark:text-gray-100">{profileUser?.name || "N/A"}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">Email Address</p>
-                                    <p className="font-semibold text-gray-900 dark:text-gray-100">{user?.email || "N/A"}</p>
+                                    <p className="font-semibold text-gray-900 dark:text-gray-100">{profileUser?.email || "N/A"}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">Mobile Number</p>
-                                    <p className="font-semibold text-gray-900 dark:text-gray-100">{user?.phone || "N/A"}</p>
+                                    <p className="font-semibold text-gray-900 dark:text-gray-100">{profileUser?.mobile || "N/A"}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">City</p>
-                                    <p className="font-semibold text-gray-900 dark:text-gray-100">{user?.city || "N/A"}</p>
+                                    <p className="font-semibold text-gray-900 dark:text-gray-100">{profileUser?.city || "N/A"}</p>
                                 </div>
                                 <div className="md:col-span-2">
                                     <p className="text-sm text-gray-500 dark:text-gray-400">Address</p>
-                                    <p className="font-semibold text-gray-900 dark:text-gray-100">{user?.address || "N/A"}</p>
+                                    <p className="font-semibold text-gray-900 dark:text-gray-100">{profileUser?.address || "N/A"}</p>
                                 </div>
                             </div>
 
@@ -124,8 +148,8 @@ export default function UserProfile() {
                                 <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Mobile Number</label>
                                 <input
                                     type="tel"
-                                    name="phone"
-                                    value={formData.phone}
+                                    name="mobile"
+                                    value={formData.mobile}
                                     onChange={handleChange}
                                     required
                                     className="w-full border dark:border-gray-700 p-3 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
@@ -142,7 +166,7 @@ export default function UserProfile() {
                                     onChange={handleChange}
                                     required
                                     className="w-full border dark:border-gray-700 p-3 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
-                                    placeholder="Mumbai"
+                                    placeholder="Bangalore"
                                 />
                             </div>
 
@@ -165,11 +189,11 @@ export default function UserProfile() {
                                     onClick={() => {
                                         setIsEditing(false);
                                         setFormData({
-                                            name: user?.name || "",
-                                            email: user?.email || "",
-                                            phone: user?.phone || "",
-                                            city: user?.city || "",
-                                            address: user?.address || "",
+                                            name: profileUser?.name || "",
+                                            email: profileUser?.email || "",
+                                            mobile: profileUser?.mobile || "",
+                                            city: profileUser?.city || "",
+                                            address: profileUser?.address || "",
                                         });
                                     }}
                                     className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold py-3 rounded-lg text-lg transition-colors"

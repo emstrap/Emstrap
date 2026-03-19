@@ -3,11 +3,14 @@ import { getDriverHistory } from "../../services/api";
 import Navbar from "../../components/layout/Navbar";
 import Container from "../../components/layout/Container";
 import toast from "react-hot-toast";
+import { useAuth } from "../../context/AuthContext";
 
 export default function DriverHistory() {
+    const { user } = useAuth();
     const [acceptedHistory, setAcceptedHistory] = useState([]);
     const [rejectedHistory, setRejectedHistory] = useState([]);
-    const [activeTab, setActiveTab] = useState("accepted");
+    const [cancelledHistory, setCancelledHistory] = useState([]);
+    const [activeTab, setActiveTab] = useState("all");
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -16,6 +19,7 @@ export default function DriverHistory() {
                 const res = await getDriverHistory("all");
                 setAcceptedHistory(res.data?.accepted || []);
                 setRejectedHistory(res.data?.rejected || []);
+                setCancelledHistory(res.data?.cancelled || []);
             } catch (err) {
                 toast.error("Failed to load history");
             } finally {
@@ -46,8 +50,16 @@ export default function DriverHistory() {
                     ✗ Declined by you
                 </div>
             )}
+
+            {type === "cancelled" && (
+                <div className="mt-4 pt-3 border-t dark:border-gray-700 border-dashed text-orange-500 font-semibold text-sm">
+                    ⚠ Accepted by you, but cancelled by patient
+                </div>
+            )}
         </div>
     );
+
+    const allHistory = [...acceptedHistory, ...rejectedHistory, ...cancelledHistory].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 
     return (
         <>
@@ -58,18 +70,30 @@ export default function DriverHistory() {
                     <p className="text-gray-500 dark:text-gray-400">All previously accepted and declined emergency dispatch bookings.</p>
                 </div>
 
-                <div className="flex space-x-2 mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl max-w-sm">
+                <div className="flex flex-wrap gap-2 mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl max-w-lg">
+                    <button
+                        onClick={() => setActiveTab("all")}
+                        className={`flex-1 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${activeTab === 'all' ? 'bg-white dark:bg-gray-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                    >
+                        All ({allHistory.length})
+                    </button>
                     <button
                         onClick={() => setActiveTab("accepted")}
-                        className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${activeTab === 'accepted' ? 'bg-white dark:bg-gray-600 text-green-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                        className={`flex-1 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${activeTab === 'accepted' ? 'bg-white dark:bg-gray-600 text-green-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                     >
                         Accepted ({acceptedHistory.length})
                     </button>
                     <button
                         onClick={() => setActiveTab("rejected")}
-                        className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${activeTab === 'rejected' ? 'bg-white dark:bg-gray-600 text-gray-800 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                        className={`flex-1 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${activeTab === 'rejected' ? 'bg-white dark:bg-gray-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                     >
                         Declined ({rejectedHistory.length})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("cancelled")}
+                        className={`flex-1 py-2 px-3 text-xs sm:text-sm font-semibold rounded-lg transition-colors ${activeTab === 'cancelled' ? 'bg-white dark:bg-gray-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                    >
+                        Other ({cancelledHistory.length})
                     </button>
                 </div>
 
@@ -77,12 +101,34 @@ export default function DriverHistory() {
                     <div className="text-center p-10 text-gray-500">Loading history...</div>
                 ) : (
                     <div className="space-y-4 max-w-3xl mb-12">
+                        {activeTab === "all" && (
+                            <>
+                                {allHistory.map((req) => renderCard(req, req.status === "CANCELLED" ? "cancelled" : (req.declinedBy?.includes(user?._id) ? "rejected" : "accepted")))}
+                                {allHistory.length === 0 && (
+                                    <div className="text-center p-10 text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed dark:border-gray-700">
+                                        No history available.
+                                    </div>
+                                )}
+                            </>
+                        )}
+
                         {activeTab === "accepted" && (
                             <>
                                 {acceptedHistory.map((req) => renderCard(req, "accepted"))}
                                 {acceptedHistory.length === 0 && (
                                     <div className="text-center p-10 text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed dark:border-gray-700">
                                         No accepted history available.
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {activeTab === "cancelled" && (
+                            <>
+                                {cancelledHistory.map((req) => renderCard(req, "cancelled"))}
+                                {cancelledHistory.length === 0 && (
+                                    <div className="text-center p-10 text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed dark:border-gray-700">
+                                        No cancelled history available.
                                     </div>
                                 )}
                             </>

@@ -9,10 +9,10 @@ import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 
 export default function AmbulanceDashboard() {
-  const [activeTab, setActiveTab] = useState("active"); // "active" | "accepted" | "rejected"
   const [requests, setRequests] = useState([]); // Actively pending nearby emergencies
+  // "active" state is now represented by mapping over requests in a modal over the map
+  // "accepted" history is tracked to route the driver to the user, handled inside the map
   const [acceptedHistory, setAcceptedHistory] = useState([]);
-  const [rejectedHistory, setRejectedHistory] = useState([]);
   const [socket, setSocket] = useState(null);
 
   // Real-time Driver Tracking State
@@ -28,7 +28,6 @@ export default function AmbulanceDashboard() {
       const res = await getDriverHistory();
       setRequests(res.data.ongoing);
       setAcceptedHistory(res.data.accepted);
-      setRejectedHistory(res.data.rejected);
     } catch (err) {
       toast.error("Failed to load dashboard data");
     }
@@ -101,7 +100,7 @@ export default function AmbulanceDashboard() {
 
         socket.on("user_location", (data) => {
           if (data.requestId === id) {
-            setUserLocation({ lat: data.latitude, lng: data.longitude });
+            setUserLocation({ lat: data.lat || data.latitude, lng: data.lng || data.longitude });
           }
         });
 
@@ -178,146 +177,89 @@ export default function AmbulanceDashboard() {
       await declineEmergency(id);
       toast.success("Request declined");
 
-      // Move from active context locally
-      const requestToMove = requests.find(r => r._id === id);
-      if (requestToMove) {
-        setRejectedHistory([requestToMove, ...rejectedHistory]);
-      }
       setRequests(requests.filter((r) => r._id !== id));
     } catch (error) {
       toast.error("Error declining request");
     }
   };
 
-  // Helper to render cards
-  const renderCard = (req, type) => (
-    <div key={req._id} className="p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 shadow-sm transition-colors">
-      <div className="flex justify-between items-start mb-2">
-        <span className="bg-red-600 text-white text-xs px-2 py-1 rounded-full uppercase font-bold">Emergency Request</span>
-        <span className="text-xs text-gray-400">{new Date(req.createdAt).toLocaleTimeString()}</span>
-      </div>
-      <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-        Patient needs help immediately at Location [{req.location?.latitude?.toFixed(4)}, {req.location?.longitude?.toFixed(4)}].
-      </p>
-
-      {type === "active" && (
-        <div className="mt-4 flex max-w-sm gap-2">
-          <button
-            onClick={() => handleAccept(req._id)}
-            className="bg-green-600 hover:bg-green-700 text-white flex-1 py-2 rounded-lg font-semibold transition"
-          >
-            Accept
-          </button>
-          <button
-            onClick={() => handleDecline(req._id)}
-            className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 flex-1 py-2 rounded-lg font-semibold transition"
-          >
-            Decline
-          </button>
-        </div>
-      )}
-
-      {type === "accepted" && (
-        <div className="mt-4 pt-4 border-t dark:border-gray-700">
-          <div className="text-green-600 font-semibold mb-4 text-center">
-            ✓ Accepted & Assigned to you
-          </div>
-
-          <div className="w-full relative z-0">
-            <LiveTrackingMap
-              userLocation={userLocation || { lat: req.location?.latitude, lng: req.location?.longitude }}
-              driverLocation={driverLocation}
-              height="300px"
-            />
-          </div>
-        </div>
-      )}
-
-      {type === "rejected" && (
-        <div className="mt-4 pt-3 border-t dark:border-gray-700 border-dashed text-gray-500 font-semibold text-sm">
-          ✗ You declined this request
-        </div>
-      )}
-    </div>
-  );
+  // The currently assigned emergency the driver is en route to
+  const currentAssignment = acceptedHistory.length > 0 ? acceptedHistory[0] : null;
 
   return (
-    <>
+    <div className="flex flex-col h-screen overflow-hidden">
       <Navbar />
-      <Container>
-        <div className="mt-10 mb-8 border-b dark:border-gray-700 pb-4">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Driver Dashboard</h1>
-          <p className="text-gray-500 dark:text-gray-400">View and respond to nearby emergency SOS dispatches.</p>
-        </div>
+      
+      {/* Fullscreen Map Area */}
+      <div className="relative flex-1 bg-gray-100 dark:bg-gray-900 w-full">
+        <LiveTrackingMap
+          userLocation={userLocation || (currentAssignment ? { lat: currentAssignment.location?.latitude, lng: currentAssignment.location?.longitude } : null)}
+          driverLocation={driverLocation}
+          height="100%"
+        />
 
-        {/* Tabs */}
-        <div className="flex space-x-2 mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl max-w-md">
-          <button
-            onClick={() => setActiveTab("active")}
-            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${activeTab === 'active' ? 'bg-white dark:bg-gray-600 text-red-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-          >
-            Active ({requests.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("accepted")}
-            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${activeTab === 'accepted' ? 'bg-white dark:bg-gray-600 text-green-600 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-          >
-            Accepted ({acceptedHistory.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("rejected")}
-            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-colors ${activeTab === 'rejected' ? 'bg-white dark:bg-gray-600 text-gray-800 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-          >
-            Declined ({rejectedHistory.length})
-          </button>
-        </div>
+        {/* Floating Accepted Status Header */}
+        {currentAssignment && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 w-[90%] max-w-md">
+             <div className="bg-green-600 shadow-xl rounded-2xl p-3 flex items-center gap-3">
+               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center animate-pulse">
+                 🚑
+               </div>
+               <div className="text-white">
+                 <h3 className="font-bold text-base">En Route to Patient</h3>
+                 <p className="text-sm opacity-90 truncate">
+                   ({currentAssignment.location?.latitude?.toFixed(4)}, {currentAssignment.location?.longitude?.toFixed(4)})
+                 </p>
+               </div>
+               <Link to="/booking-history" className="ml-auto text-xs bg-white text-green-700 px-3 py-1.5 rounded-full font-bold shadow-sm">
+                 Details
+               </Link>
+             </div>
+          </div>
+        )}
 
-        <div className="space-y-4 max-w-3xl mb-12">
-          {activeTab === "active" && (
-            <>
-              {requests.map((req) => renderCard(req, "active"))}
-              {requests.length === 0 && (
-                <div className="text-center p-10 text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed dark:border-gray-700">
-                  <span className="block text-3xl mb-2">🚑</span>
-                  No active emergencies.
+        {/* Incoming Emergency Modal Overlays */}
+        {/* We stack them absolute at the bottom like Uber/Rapido */}
+        <div className="absolute bottom-6 left-0 w-full px-4 flex flex-col gap-3 z-20 pointer-events-none">
+          {requests.map((req) => (
+            <div key={req._id} className="mx-auto w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border-2 border-red-500 overflow-hidden pointer-events-auto transform transition-all translate-y-0 opacity-100 animate-slide-up">
+              <div className="bg-red-500 p-2.5 text-center text-white font-bold tracking-widest text-sm animate-pulse">
+                🚨 NEW EMERGENCY
+              </div>
+              <div className="p-4">
+                <p className="text-gray-800 dark:text-gray-200 font-medium mb-1">Patient Needs Immediate Help!</p>
+                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-4 bg-gray-50 dark:bg-gray-900/50 p-2 rounded-lg">
+                  <span className="text-xl">📍</span>
+                  <span className="truncate">[{req.location?.latitude?.toFixed(4)}, {req.location?.longitude?.toFixed(4)}]</span>
                 </div>
-              )}
-            </>
-          )}
-
-          {activeTab === "accepted" && (
-            <>
-              {acceptedHistory.slice(0, 2).map((req) => renderCard(req, "accepted"))}
-              {acceptedHistory.length > 2 && (
-                <Link to="/booking" className="block text-center mt-4 text-red-600 font-semibold hover:underline">
-                  View All Accepted History
-                </Link>
-              )}
-              {acceptedHistory.length === 0 && (
-                <div className="text-center p-10 text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed dark:border-gray-700">
-                  No accepted history available.
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleDecline(req._id)}
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 py-3 rounded-xl font-bold transition-all"
+                  >
+                    Decline
+                  </button>
+                  <button
+                    onClick={() => handleAccept(req._id)}
+                    className="flex-[2] bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl font-bold text-lg shadow-md shadow-green-500/20 transition-all flex justify-center items-center gap-2"
+                  >
+                    ACCEPT
+                  </button>
                 </div>
-              )}
-            </>
-          )}
-
-          {activeTab === "rejected" && (
-            <>
-              {rejectedHistory.slice(0, 2).map((req) => renderCard(req, "rejected"))}
-              {rejectedHistory.length > 2 && (
-                <Link to="/booking" className="block text-center mt-4 text-gray-600 dark:text-gray-300 font-semibold hover:underline">
-                  View All Declined History
-                </Link>
-              )}
-              {rejectedHistory.length === 0 && (
-                <div className="text-center p-10 text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed dark:border-gray-700">
-                  No declined history available.
-                </div>
-              )}
-            </>
+              </div>
+            </div>
+          ))}
+          
+          {/* Driver Status Chip at the very bottom when no modals */}
+          {requests.length === 0 && !currentAssignment && (
+             <div className="mx-auto bg-gray-900/80 backdrop-blur-sm text-white px-5 py-3 rounded-full flex items-center gap-3 shadow-lg pointer-events-auto border border-gray-700">
+               <div className="w-3 h-3 bg-green-500 rounded-full animate-ping"></div>
+               <span className="font-semibold tracking-wide text-sm">Online & Looking for requests</span>
+             </div>
           )}
         </div>
-      </Container>
-    </>
+      </div>
+    </div>
   );
 }

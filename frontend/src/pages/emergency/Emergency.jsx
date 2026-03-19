@@ -63,7 +63,7 @@ export default function Emergency() {
         if (!prev) return prev;
         return {
           ...prev,
-          location: { lat: data.latitude, lng: data.longitude }
+          location: { lat: data.lat || data.latitude, lng: data.lng || data.longitude }
         };
       });
     });
@@ -126,7 +126,7 @@ export default function Emergency() {
           if (!prev) return prev;
           return {
             ...prev,
-            location: { lat: data.latitude, lng: data.longitude }
+            location: { lat: data.lat || data.latitude, lng: data.lng || data.longitude }
           };
         });
       });

@@ -12,7 +12,7 @@ export default function DriverNotificationListener() {
 
     useEffect(() => {
         // Only connect if user is a logged-in ambulance driver
-        if (!user || user.role !== "ambulance") return;
+        if (!user || (user.role !== "ambulance" && user.role !== "ambulance_driver")) return;
 
         // Register Service Worker for robust background notifications
         if ("serviceWorker" in navigator) {

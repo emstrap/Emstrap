@@ -26,9 +26,19 @@ const generateTokenAndSetCookie = (user, res) => {
 
 // REGISTER
 export const registerUser = async (req, res) => {
-  const { name, email, password, address, role, city, vehicleNumber } = req.body;
+  const { name, email, password, mobile, address, role, city, vehicleNumber } = req.body;
 
   try {
+    if (!mobile || !/^[6-9]\d{9}$/.test(mobile)) {
+        return res.status(400).json({ message: "Please enter a valid 10-digit Indian mobile number." });
+    }
+
+    // Strong Password Validation (Min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special character)
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!strongPasswordRegex.test(password)) {
+        return res.status(400).json({ message: "Password must be at least 8 characters long, including an uppercase letter, lowercase letter, number, and special character." });
+    }
+
     const userExists = await User.findOne({ email });
 
     if (userExists) {
@@ -79,6 +89,7 @@ export const registerUser = async (req, res) => {
       name,
       email,
       password: hashedPassword,
+      mobile,
       address,
       city,
       role: userRole,
@@ -193,12 +204,16 @@ export const logoutUser = async (req, res) => {
 
 // UPDATE USER PROFILE
 export const updateUser = async (req, res) => {
-  const { name, email, city, address } = req.body;
+  const { name, email, mobile, city, address } = req.body;
   try {
+    if (mobile && !/^[6-9]\d{9}$/.test(mobile)) {
+        return res.status(400).json({ message: "Please enter a valid 10-digit Indian mobile number." });
+    }
+
     const userId = req.user._id;
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { name, email, city, address, updatedAt: Date.now() },
+      { name, email, mobile, city, address, updatedAt: Date.now() },
       { new: true, runValidators: true }
     ).select('-password');
 

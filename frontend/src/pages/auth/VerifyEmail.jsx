@@ -38,7 +38,7 @@ export default function VerifyEmail() {
             <Container>
                 <div className="flex justify-center mt-12">
                     <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg text-center">
-                        <h2 className="text-2xl font-bold mb-6">Email Verification</h2>
+                        <h2 className="text-2xl font-bold text-black mb-6">Email Verification</h2>
 
                         {status === "loading" && (
                             <div className="text-gray-600 mb-6">{message}</div>
