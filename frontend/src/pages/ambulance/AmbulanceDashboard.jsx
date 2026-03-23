@@ -142,20 +142,7 @@ export default function AmbulanceDashboard() {
             },
             (err) => {
               console.error("Error watching position", err);
-              toast.error("GPS signal lost. Falling back to simulated location...");
-
-              // Fallback to simulated location if watchPosition fails
-              watchIdRef.current = setInterval(() => {
-                const dummyLoc = {
-                  lat: 12.9716 + (Math.random() * 0.005),
-                  lng: 77.5946 + (Math.random() * 0.005)
-                };
-                setDriverLocation(dummyLoc);
-                socket.emit("update_location", {
-                  requestId: id,
-                  ...dummyLoc
-                });
-              }, 3000);
+              toast.error("Waiting for live GPS signal...");
             },
             { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
           );

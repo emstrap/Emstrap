@@ -1,168 +1,133 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { 
-  GoogleMap, 
-  useJsApiLoader, 
-  MarkerF, 
-  DirectionsService, 
-  DirectionsRenderer,
-  InfoWindowF
-} from "@react-google-maps/api";
+import { useEffect, useState } from "react";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
+import L from "leaflet";
 
-const containerStyle = {
-  width: "100%",
-  height: "100%",
-};
+// Custom icons - Leaflet markers use standard URL
+const driverIcon = new L.Icon({
+  iconUrl: "https://cdn-icons-png.flaticon.com/512/3203/3203071.png", // Ambulance Icon
+  iconSize: [40, 40],
+  iconAnchor: [20, 20],
+  popupAnchor: [0, -20]
+});
 
-// Custom icons - Google Maps markers use simple SVG or URL
-const driverIconUrl = "https://cdn-icons-png.flaticon.com/512/3203/3203071.png"; // Ambulance Icon
-const userIconUrl = "https://cdn-icons-png.flaticon.com/512/9131/9131529.png"; // Patient/User Icon
+const userIcon = new L.Icon({
+  iconUrl: "https://cdn-icons-png.flaticon.com/512/9131/9131529.png", // Patient/User Icon
+  iconSize: [40, 40],
+  iconAnchor: [20, 20],
+  popupAnchor: [0, -20]
+});
 
-const libraries = ["places"];
-
-export default function LiveTrackingMap({ userLocation, driverLocation, height = "400px" }) {
-  const { isLoaded } = useJsApiLoader({
-    id: "google-map-script",
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "", // User needs to provide this
-    libraries: libraries
-  });
-
-  const [map, setMap] = useState(null);
-  const [directions, setDirections] = useState(null);
-  const [showDriverPopup, setShowDriverPopup] = useState(false);
-  const [showUserPopup, setShowUserPopup] = useState(false);
-
-  const onLoad = useCallback(function callback(mapInstance) {
-    setMap(mapInstance);
-  }, []);
-
-  const onUnmount = useCallback(function callback() {
-    setMap(null);
-  }, []);
-
-  // Effect to calculate directions when both locations are available
+// Helper component to auto-fit map bounds tightly over patient and driver
+function MapBoundsFit({ userLocation, driverLocation }) {
+  const map = useMap();
   useEffect(() => {
-    if (isLoaded && userLocation?.lat && driverLocation?.lat) {
-      const directionsService = new window.google.maps.DirectionsService();
-      directionsService.route(
-        {
-          origin: new window.google.maps.LatLng(driverLocation.lat, driverLocation.lng),
-          destination: new window.google.maps.LatLng(userLocation.lat, userLocation.lng),
-          travelMode: window.google.maps.TravelMode.DRIVING,
-        },
-        (result, status) => {
-          if (status === window.google.maps.DirectionsStatus.OK) {
-            setDirections(result);
-          } else {
-            console.error(`error fetching directions ${result}`);
-          }
-        }
-      );
-    }
-  }, [isLoaded, userLocation, driverLocation]);
-
-  // Effect to fit bounds
-  useEffect(() => {
-    if (map && (userLocation?.lat || driverLocation?.lat)) {
-      const bounds = new window.google.maps.LatLngBounds();
-      if (userLocation?.lat) bounds.extend(userLocation);
-      if (driverLocation?.lat) bounds.extend(driverLocation);
-      
-      if (userLocation?.lat && driverLocation?.lat) {
-        map.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
-      } else {
-        map.panTo(userLocation?.lat ? userLocation : driverLocation);
-        map.setZoom(15);
-      }
+    if (userLocation?.lat && driverLocation?.lat) {
+      const bounds = L.latLngBounds([
+        [userLocation.lat, userLocation.lng],
+        [driverLocation.lat, driverLocation.lng]
+      ]);
+      map.fitBounds(bounds, { padding: [50, 50] });
+    } else if (userLocation?.lat) {
+      map.setView([userLocation.lat, userLocation.lng], 15);
+    } else if (driverLocation?.lat) {
+      map.setView([driverLocation.lat, driverLocation.lng], 15);
     }
   }, [map, userLocation, driverLocation]);
+  return null;
+}
 
-  if (!isLoaded) return <div className="w-full bg-gray-100 dark:bg-gray-800 animate-pulse rounded-2xl flex items-center justify-center" style={{ height }}>
-    <p className="text-gray-500 font-medium">Loading Google Maps...</p>
-  </div>;
+export default function LiveTrackingMap({ userLocation, driverLocation, height = "400px" }) {
+  const [routeCoords, setRouteCoords] = useState(null);
 
-  const center = (userLocation?.lat ? userLocation : null)
-    || (driverLocation?.lat ? driverLocation : null)
-    || { lat: 20.5937, lng: 78.9629 };
+  useEffect(() => {
+    let active = true;
+    
+    const fetchRoute = async () => {
+      // We only execute routing if both vectors are valid
+      if (userLocation?.lat && driverLocation?.lat) {
+        try {
+           // Overly important mapping difference: ORS strictly takes [lng, lat] syntax!
+           const start = `${driverLocation.lng},${driverLocation.lat}`;
+           const end = `${userLocation.lng},${userLocation.lat}`;
+           const apiKey = import.meta.env.VITE_ORS_API_KEY;
+
+           if (!apiKey) {
+               console.warn("Missing VITE_ORS_API_KEY. Navigation routing line will not render natively");
+               return;
+           }
+
+           const res = await fetch(`https://api.openrouteservice.org/v2/directions/driving-car?api_key=${apiKey}&start=${start}&end=${end}`);
+           if (!res.ok) throw new Error("ORS Routing Calculation Failure");
+           const data = await res.json();
+           
+           if (data.features && data.features.length > 0 && active) {
+              const geometry = data.features[0].geometry.coordinates;
+              // React-Leaflet Polyline strictly accepts [lat, lng] array maps, so we reverse it!
+              const leafletCoords = geometry.map(coord => [coord[1], coord[0]]);
+              setRouteCoords(leafletCoords);
+           }
+        } catch (error) {
+           console.error("Failed to fetch Live ORS Map routing:", error);
+        }
+      } else {
+        setRouteCoords(null);
+      }
+    };
+
+    fetchRoute();
+    
+    // Prevent fetching race condition
+    return () => { active = false; };
+  }, [userLocation, driverLocation]);
+
+  const center = userLocation?.lat ? [userLocation.lat, userLocation.lng] 
+               : driverLocation?.lat ? [driverLocation.lat, driverLocation.lng] 
+               : [20.5937, 78.9629]; // Default Geographic India point map
 
   return (
-    <div className={`w-full h-full min-h-[${height}] rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-700 relative z-0 flex flex-col flex-1`}>
-      {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
-        <div className="absolute top-2 left-2 z-10 bg-yellow-100 border border-yellow-400 text-yellow-700 px-3 py-1 rounded text-xs">
-          Missing Google Maps API Key
-        </div>
+    <div className={`w-full min-h-[${height}] rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-700 relative z-0 flex flex-col flex-1`} style={{ height, minHeight: height }}>
+      
+      {/* Visual Overlay Error Warning */}
+      {!import.meta.env.VITE_ORS_API_KEY && (
+         <div className="absolute top-2 left-2 z-[1000] bg-yellow-100 border border-yellow-400 text-yellow-700 px-3 py-1 rounded text-xs opacity-90 shadow">
+            Missing OpenRouteService API Key (Line disabled)
+         </div>
       )}
-      <GoogleMap
-        mapContainerStyle={containerStyle}
-        center={center}
-        zoom={13}
-        onLoad={onLoad}
-        onUnmount={onUnmount}
-        options={{
-          zoomControl: false,
-          mapTypeControl: false,
-          scaleControl: false,
-          streetViewControl: false,
-          rotateControl: false,
-          fullscreenControl: false,
-          styles: [
-            {
-              featureType: "poi",
-              stylers: [{ visibility: "off" }],
-            },
-          ],
-        }}
+
+      {/* Primary Leaflet Container Engine Node */}
+      <MapContainer 
+         center={center} 
+         zoom={13} 
+         style={{ width: "100%", height: "100%", minHeight: "100%" }} 
+         scrollWheelZoom={false}
       >
-        {/* User Marker */}
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+
+        {/* Bind Custom Auto Map Resizer Engine Module Component Hook */}
+        <MapBoundsFit userLocation={userLocation} driverLocation={driverLocation} />
+
+        {/* User Patient Marker View */}
         {userLocation?.lat && (
-          <MarkerF 
-            position={userLocation} 
-            icon={{
-              url: userIconUrl,
-              scaledSize: new window.google.maps.Size(40, 40),
-            }}
-            onClick={() => setShowUserPopup(true)}
-          >
-            {showUserPopup && (
-              <InfoWindowF onCloseClick={() => setShowUserPopup(false)}>
-                <div className="text-sm font-medium">Patient Location</div>
-              </InfoWindowF>
-            )}
-          </MarkerF>
+          <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon}>
+             <Popup>Patient Location</Popup>
+          </Marker>
         )}
 
-        {/* Driver Marker */}
+        {/* Emergency Driver Marker View */}
         {driverLocation?.lat && (
-          <MarkerF 
-            position={driverLocation} 
-            icon={{
-              url: driverIconUrl,
-              scaledSize: new window.google.maps.Size(40, 40),
-            }}
-            onClick={() => setShowDriverPopup(true)}
-          >
-             {showDriverPopup && (
-              <InfoWindowF onCloseClick={() => setShowDriverPopup(false)}>
-                <div className="text-sm font-medium">Ambulance</div>
-              </InfoWindowF>
-            )}
-          </MarkerF>
+          <Marker position={[driverLocation.lat, driverLocation.lng]} icon={driverIcon}>
+             <Popup>Ambulance Driver Live</Popup>
+          </Marker>
         )}
 
-        {/* Route Lines */}
-        {directions && (
-          <DirectionsRenderer
-            directions={directions}
-            options={{
-              suppressMarkers: true,
-              polylineOptions: {
-                strokeColor: "#EF4444",
-                strokeWeight: 5,
-                strokeOpacity: 0.8,
-              },
-            }}
-          />
+        {/* Dynamic ORS Red Polyline Route Draw Render View */}
+        {routeCoords && (
+          <Polyline positions={routeCoords} color="#EF4444" weight={5} opacity={0.8} dashArray="10, 10" />
         )}
-      </GoogleMap>
+      </MapContainer>
     </div>
   );
 }

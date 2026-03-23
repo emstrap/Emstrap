@@ -1,18 +1,14 @@
 import { useState, useEffect, useRef } from "react";
-import { useJsApiLoader } from "@react-google-maps/api";
 import toast from "react-hot-toast";
 
-const libraries = ["places"];
-
 export default function LocationSearchInput({ label, placeholder, value, onSelect }) {
-    const { isLoaded } = useJsApiLoader({
-        id: "google-map-script",
-        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "", // User needs to provide this
-        libraries: libraries
-    });
-
     const [query, setQuery] = useState(value?.address || "");
-    const autocompleteRef = useRef(null);
+    const [results, setResults] = useState([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [showDropdown, setShowDropdown] = useState(false);
+    
+    const dropdownRef = useRef(null);
+    const debounceTimeout = useRef(null);
 
     // Update internal query if value prop changes externally
     useEffect(() => {
@@ -21,35 +17,60 @@ export default function LocationSearchInput({ label, placeholder, value, onSelec
         }
     }, [value]);
 
+    // Handle clicking outside the dropdown to close it
     useEffect(() => {
-        const el = autocompleteRef.current;
-        if (!el || !isLoaded) return;
-
-        const handlePlaceSelect = async (event) => {
-            const place = event.place;
-            if (!place) return;
-
-            // `place` is a Place instance from Places API (New)
-            await place.fetchFields({ fields: ["displayName", "formattedAddress", "location"] });
-            
-            if (place.location) {
-                const lat = place.location.lat();
-                const lng = place.location.lng();
-                const address = place.formattedAddress || place.displayName;
-                
-                setQuery(address);
-                onSelect({ address, lat, lng });
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setShowDropdown(false);
             }
         };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
-        el.addEventListener("gmp-placeselect", handlePlaceSelect);
-        return () => {
-            el.removeEventListener("gmp-placeselect", handlePlaceSelect);
-        };
-    }, [isLoaded, onSelect]);
+    const fetchOSMSearch = async (searchText) => {
+        if (!searchText.trim()) {
+            setResults([]);
+            setShowDropdown(false);
+            return;
+        }
+
+        setIsSearching(true);
+        try {
+            // Searching Nominatim OpenStreetMap Database
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchText)}&limit=5`);
+            const data = await res.json();
+            
+            setResults(data);
+            setShowDropdown(true);
+        } catch (error) {
+            console.error("OSM Search Error:", error);
+            toast.error("Failed to connect to search service.");
+        } finally {
+            setIsSearching(false);
+        }
+    };
 
     const handleInputChange = (e) => {
-        setQuery(e.target.value);
+        const text = e.target.value;
+        setQuery(text);
+        
+        // Clear previous timeout and set a new one (Debounce 500ms)
+        if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+        
+        debounceTimeout.current = setTimeout(() => {
+            fetchOSMSearch(text);
+        }, 500);
+    };
+
+    const handleSelectResult = (result) => {
+        const lat = parseFloat(result.lat);
+        const lng = parseFloat(result.lon);
+        const address = result.display_name;
+        
+        setQuery(address);
+        setShowDropdown(false);
+        onSelect({ address, lat, lng });
     };
 
     const handleCurrentLocation = () => {
@@ -61,62 +82,56 @@ export default function LocationSearchInput({ label, placeholder, value, onSelec
         const loadToast = toast.loading("Finding your location...");
 
         navigator.geolocation.getCurrentPosition(
-            (position) => {
+            async (position) => {
                 const lat = position.coords.latitude;
                 const lng = position.coords.longitude;
 
-                const geocoder = new window.google.maps.Geocoder();
-                geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+                try {
+                    // Reverse Geocoding with Nominatim API
+                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                    const data = await res.json();
+                    
                     toast.dismiss(loadToast);
-                    if (status === "OK" && results[0]) {
-                        const address = results[0].formatted_address;
+                    if (data && data.display_name) {
+                        const address = data.display_name;
                         setQuery(address);
                         onSelect({ address, lat, lng });
                         toast.success("Location identified!");
                     } else {
-                        // Fallback if Geocoding fails but we have coords
+                        // Fallback
                         const address = `Location [${lat.toFixed(4)}, ${lng.toFixed(4)}]`;
                         setQuery(address);
                         onSelect({ address, lat, lng });
                         toast.success("Coordinates found!");
                     }
-                });
+                } catch (error) {
+                    toast.dismiss(loadToast);
+                    toast.error("Failed to reverse-geocode location.");
+                    console.error(error);
+                }
             },
             (error) => {
+                console.error(error);
                 toast.dismiss(loadToast);
                 toast.error("Failed to get location. Please enable GPS permissions.");
-                console.error(error);
             },
             { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
         );
     };
 
-    if (!isLoaded) {
-        return (
-            <div className="relative">
-                <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">{label}</label>
-                <div className="w-full border dark:border-gray-700 p-3 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 animate-pulse">
-                    Loading Maps...
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className="relative">
+        <div className="relative" ref={dropdownRef}>
             <label className="block text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">{label}</label>
             <div className="relative flex items-center">
-                <gmp-place-autocomplete ref={autocompleteRef} style={{ width: "100%" }}>
-                    <input
-                        type="text"
-                        required
-                        slot="input"
-                        placeholder={placeholder}
-                        value={query}
-                        onChange={handleInputChange}
-                        className="w-full border dark:border-gray-700 py-3 pl-3 pr-12 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
-                    />
-                </gmp-place-autocomplete>
+                <input
+                    type="text"
+                    required
+                    placeholder={placeholder}
+                    value={query}
+                    onChange={handleInputChange}
+                    onFocus={() => { if (results.length > 0) setShowDropdown(true); }}
+                    className="w-full border dark:border-gray-700 py-3 pl-3 pr-12 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
+                />
 
                 <button
                     type="button"
@@ -129,6 +144,28 @@ export default function LocationSearchInput({ label, placeholder, value, onSelec
                     </svg>
                 </button>
             </div>
+
+            {/* Custom Dropdown Results */}
+            {showDropdown && results.length > 0 && (
+                <ul className="absolute z-20 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {results.map((result, idx) => (
+                        <li 
+                            key={idx} 
+                            onClick={() => handleSelectResult(result)}
+                            className="px-4 py-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-800 dark:text-gray-200 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                        >
+                            {result.display_name}
+                        </li>
+                    ))}
+                </ul>
+            )}
+            
+            {/* Loading Indicator inside Dropdown visually */}
+            {isSearching && showDropdown === false && query && (
+               <div className="absolute z-20 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 text-sm text-gray-500 text-center">
+                   Searching OSM Directory...
+               </div>
+            )}
         </div>
     );
 }

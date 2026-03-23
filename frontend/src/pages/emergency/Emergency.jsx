@@ -72,13 +72,25 @@ export default function Emergency() {
   };
 
   const startEmergency = () => {
-    // fetch location silently
-    navigator.geolocation.getCurrentPosition((pos) => {
-      setLocation({
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-      });
-    });
+    // try GPS first
+    if (navigator.geolocation) {
+       navigator.geolocation.getCurrentPosition(
+         (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+         (err) => {
+            // IP Fallback
+            fetch("https://ipapi.co/json/")
+              .then(res => res.json())
+              .then(data => setLocation({ lat: data.latitude, lng: data.longitude }))
+              .catch(() => setLocation({ lat: 12.9716, lng: 77.5946 })); // Bangalore default
+         },
+         { enableHighAccuracy: true, timeout: 5000 }
+       );
+    } else {
+       fetch("https://ipapi.co/json/")
+         .then(res => res.json())
+         .then(data => setLocation({ lat: data.latitude, lng: data.longitude }))
+         .catch(() => setLocation({ lat: 12.9716, lng: 77.5946 }));
+    }
 
     setStep("capture");
   };
@@ -89,10 +101,16 @@ export default function Emergency() {
     setStep("searching");
 
     try {
+      if (!location) {
+         toast.error("Failed to acquire live location. Please allow GPS.");
+         setStep("start");
+         return;
+      }
+
       // Create request on backend using API service
       const response = await API.post("/api/emergency", {
-        latitude: location?.lat || 0,
-        longitude: location?.lng || 0,
+        latitude: location.lat,
+        longitude: location.lng,
         imageUrl: photo || ""
       });
 
@@ -231,21 +249,7 @@ export default function Emergency() {
           },
           (err) => {
             console.error("GPS error", err);
-            // Simulate slow movement for demo if GPS unavailable
-            watchIdRef.current = setInterval(() => {
-              setLocation(prev => {
-                if (!prev) return prev;
-                const dummyLoc = {
-                  latitude: prev.lat + (Math.random() * 0.001),
-                  longitude: prev.lng + (Math.random() * 0.001)
-                };
-                socket.emit("update_user_location", {
-                  requestId,
-                  ...dummyLoc
-                });
-                return { lat: dummyLoc.latitude, lng: dummyLoc.longitude };
-              });
-            }, 5000);
+            toast.error("Waiting for live GPS signal...");
           },
           { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
         );
