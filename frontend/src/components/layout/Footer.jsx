@@ -1,10 +1,15 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import logo from "../../assets/logo.png";
 
 export default function Footer() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  if (location.pathname.startsWith('/police')) {
+      return null;
+  }
 
   return (
     <footer className="bg-slate-900 text-white mt-16">

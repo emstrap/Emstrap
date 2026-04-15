@@ -179,6 +179,53 @@ export const loginUser = async (req, res) => {
   }
 };
 
+// SETUP SINGLE ADMIN (One-time use)
+export const setupAdminUser = async (req, res) => {
+  const { name, email, password, mobile } = req.body;
+
+  try {
+    // 1. Check if ANY admin already exists in the entire database
+    const adminExists = await User.countDocuments({ role: "admin" });
+    if (adminExists > 0) {
+      return res.status(403).json({ message: "An administrator account already exists. Setup is locked." });
+    }
+
+    // 2. Strong Password Validation
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!strongPasswordRegex.test(password)) {
+      return res.status(400).json({ message: "Password must be at least 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special character." });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 3. Create the Admin User (Bypass email verification so they can immediately login)
+    const adminUser = new User({
+      name,
+      email,
+      password: hashedPassword,
+      mobile: mobile || "0000000000",
+      role: "admin",
+      isEmailVerified: true // Pre-verify the master admin
+    });
+
+    await adminUser.save();
+
+    // 4. Issue token immediately
+    generateTokenAndSetCookie(adminUser, res);
+
+    res.status(201).json({
+      message: "Master Administrator account successfully initialized.",
+      _id: adminUser._id,
+      name: adminUser.name,
+      email: adminUser.email,
+      role: adminUser.role
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // GET CURRENT USER (For session restoration)
 export const getMe = async (req, res) => {
   try {

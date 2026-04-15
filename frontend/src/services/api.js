@@ -8,15 +8,24 @@ const API = axios.create({
   withCredentials: true // Extremely important to let cookies route through Origin
 });
 
-// REGISTER API
+// AUTH APIs
 export const registerAPI = async (userData) => {
   const res = await API.post("/auth/register", userData);
   return res.data;
 };
 
-// LOGIN API
-export const loginAPI = async (credentials) => {
-  const res = await API.post("/auth/login", credentials);
+export const loginAPI = async (userData) => {
+  const res = await API.post("/auth/login", userData);
+  return res.data;
+};
+
+export const setupAdmin = async (userData) => {
+  const res = await API.post("/auth/setup-admin", userData);
+  return res.data;
+};
+
+export const logout = async () => {
+  const res = await API.post("/auth/logout");
   return res.data;
 };
 
@@ -56,6 +65,33 @@ export const declineEmergency = async (id) => {
 
 export const cancelEmergency = async (id) => {
   const res = await API.put(`/api/emergency/${id}/cancel`);
+  return res.data;
+};
+
+// ADMIN APIs
+export const getAdminMetrics = async () => {
+  const res = await API.get("/api/admin/metrics");
+  return res.data;
+};
+
+export const getAllUsers = async () => {
+  const res = await API.get("/api/admin/users");
+  return res.data;
+};
+
+export const updateUserRole = async (userId, role) => {
+  const res = await API.put(`/api/admin/users/${userId}/role`, { role });
+  return res.data;
+};
+
+export const getAllEmergencies = async () => {
+  const res = await API.get("/api/admin/emergencies");
+  return res.data;
+};
+
+// POLICE APIs
+export const getPoliceEmergencies = async () => {
+  const res = await API.get("/api/police/emergencies");
   return res.data;
 };
 

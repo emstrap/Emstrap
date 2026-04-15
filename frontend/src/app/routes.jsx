@@ -15,6 +15,17 @@ const ForgotPassword = lazy(() => import("../pages/auth/ForgotPassword"));
 const ResetPassword = lazy(() => import("../pages/auth/ResetPassword"));
 const DriverHistory = lazy(() => import("../pages/ambulance/DriverHistory"));
 
+const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard"));
+const AdminUsers = lazy(() => import("../pages/admin/AdminUsers"));
+const AdminEmergencies = lazy(() => import("../pages/admin/AdminEmergencies"));
+const AdminSetup = lazy(() => import("../pages/auth/AdminSetup"));
+const AdminLogin = lazy(() => import("../pages/auth/AdminLogin"));
+
+const PoliceLayout = lazy(() => import("../pages/Police/PoliceLayout"));
+const PoliceDashboard = lazy(() => import("../pages/Police/PoliceDashboard"));
+const LiveMap = lazy(() => import("../pages/Police/LiveMap"));
+const PoliceAnalytics = lazy(() => import("../pages/Police/PoliceAnalytics"));
+
 export default function AppRoutes() {
   return (
     <Suspense fallback={
@@ -32,6 +43,8 @@ export default function AppRoutes() {
         <Route path="/verify-email/:token" element={<VerifyEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/admin-setup" element={<AdminSetup />} />
+        <Route path="/admin-login" element={<AdminLogin />} />
 
         <Route path="/tracking" element={<Tracking />} />
 
@@ -58,6 +71,31 @@ export default function AppRoutes() {
             <DriverHistory />
           </ProtectedRoute>
         } />
+
+        <Route path="/admin" element={
+          <ProtectedRoute role="admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/admin/users" element={
+          <ProtectedRoute role="admin">
+            <AdminUsers />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/admin/emergencies" element={
+          <ProtectedRoute role="admin">
+            <AdminEmergencies />
+          </ProtectedRoute>
+        } />
+
+        {/* Police Protected Hierarchy */}
+        <Route path="/police" element={<ProtectedRoute role="police"><PoliceLayout /></ProtectedRoute>}>
+            <Route index element={<PoliceDashboard />} />
+            <Route path="map" element={<LiveMap />} />
+            <Route path="analytics" element={<PoliceAnalytics />} />
+        </Route>
       </Routes>
     </Suspense>
   );

@@ -16,9 +16,10 @@ export default function ProtectedRoute({ children, role }) {
     // Some roles might be named slightly differently in DB vs Routes
     const isAmbulance = role === "ambulance" && (user.role === "ambulance" || user.role === "ambulance_driver");
     const isHospital = role === "hospital" && (user.role === "hospital" || user.role === "hospital_admin");
+    const isPolice = role === "police" && (user.role === "police" || user.role === "police_hq");
     const isExactMatch = user.role === role;
 
-    if (!isExactMatch && !isAmbulance && !isHospital) {
+    if (!isExactMatch && !isAmbulance && !isHospital && !isPolice) {
       return <Navigate to="/" />;
     }
   }
