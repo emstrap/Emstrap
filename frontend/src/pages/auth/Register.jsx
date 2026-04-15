@@ -78,7 +78,7 @@ export default function Register() {
                 </button>
               </div>
             ) : (
-              <>
+              <form onSubmit={(e) => { e.preventDefault(); handleRegister(); }}>
                 <h2 className="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white">
                   Create Account
                 </h2>
@@ -170,7 +170,7 @@ export default function Register() {
                 )}
 
                 <button
-                  onClick={handleRegister}
+                  type="submit"
                   disabled={status === "loading"}
                   className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3.5 rounded-xl flex justify-center items-center transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                 >
@@ -193,7 +193,7 @@ export default function Register() {
                     Login
                   </span>
                 </p>
-              </>
+              </form>
             )}
           </div>
         </div>
