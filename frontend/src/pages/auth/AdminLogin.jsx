@@ -3,12 +3,13 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Container from "../../components/layout/Container";
-import { loginAPI } from "../../services/api";
+import { adminLoginAPI, getErrorMessage } from "../../services/api";
 import toast from "react-hot-toast";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const { loginUser, logoutUser, user, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -18,22 +19,31 @@ export default function AdminLogin() {
     }
   }, [user, loading, navigate]);
 
-  const handleAdminLogin = async () => {
-    try {
-      const data = await loginAPI({ email, password });
+  const handleAdminLogin = async (event) => {
+    event?.preventDefault();
 
-      // STRICT ROLE GAURD
-      if (data.role !== "admin") {
+    if (!email.trim() || !password) {
+      toast.error("Please enter both admin email and password.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const data = await adminLoginAPI({ email: email.trim().toLowerCase(), password });
+
+      if (data.user?.role !== "admin") {
           toast.error("Unauthorized: You do not have Administrative Privileges.");
           logoutUser(); // Immediately revoke the session locally and on the server
           return;
       }
 
       loginUser(data);
-      toast.success("Admin Authorization Confirmed");
+      toast.success(data.message || "Admin Authorization Confirmed");
       navigate("/admin");
-    } catch {
-      toast.error("Authentication failed. Invalid master credentials.");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Authentication failed. Invalid master credentials."));
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -51,25 +61,31 @@ export default function AdminLogin() {
                 <p className="text-xs font-bold text-red-500 tracking-widest uppercase mt-2">Restricted Access Zone</p>
             </div>
 
-            <input
-              className="w-full border-2 border-gray-200 dark:border-gray-700 p-3.5 rounded-xl mb-4 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-red-500 dark:focus:border-red-500 transition-colors font-mono"
-              placeholder="ADMIN_IDENTITY (Email)"
-              onChange={(e) => setEmail(e.target.value)}
-            />
+            <form onSubmit={handleAdminLogin}>
+              <input
+                className="w-full border-2 border-gray-200 dark:border-gray-700 p-3.5 rounded-xl mb-4 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-red-500 dark:focus:border-red-500 transition-colors font-mono"
+                placeholder="ADMIN_IDENTITY (Email)"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
 
-            <input
-              className="w-full border-2 border-gray-200 dark:border-gray-700 p-3.5 rounded-xl mb-8 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-red-500 dark:focus:border-red-500 transition-colors font-mono"
-              type="password"
-              placeholder="PASSPHRASE"
-              onChange={(e) => setPassword(e.target.value)}
-            />
+              <input
+                className="w-full border-2 border-gray-200 dark:border-gray-700 p-3.5 rounded-xl mb-8 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-red-500 dark:focus:border-red-500 transition-colors font-mono"
+                type="password"
+                placeholder="PASSPHRASE"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
 
-            <button
-              onClick={handleAdminLogin}
-              className="w-full bg-red-600 hover:bg-black text-white font-black tracking-[0.2em] py-4 rounded-xl transition-all shadow-lg hover:shadow-red-500/50 flex justify-center items-center gap-2"
-            >
-              AUTHENTICATE
-            </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full bg-red-600 hover:bg-black text-white font-black tracking-[0.2em] py-4 rounded-xl transition-all shadow-lg hover:shadow-red-500/50 flex justify-center items-center gap-2 disabled:opacity-60"
+              >
+                {submitting ? "AUTHENTICATING..." : "AUTHENTICATE"}
+              </button>
+            </form>
           </div>
         </div>
       </Container>

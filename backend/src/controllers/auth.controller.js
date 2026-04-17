@@ -3,6 +3,11 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import sendEmail from "../utils/sendEmail.js";
+import {
+  DEFAULT_ADMIN,
+  ensureDefaultAdminUser,
+  verifyPasswordAndUpgradeIfNeeded,
+} from "../utils/adminAuth.js";
 
 
 // Helper function to set JWT in an HttpOnly cookie
@@ -23,6 +28,22 @@ const generateTokenAndSetCookie = (user, res) => {
 
   return token;
 };
+
+const buildAuthResponse = (user, token, message) => ({
+  success: true,
+  message,
+  token,
+  user: {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  },
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  role: user.role,
+});
 
 // REGISTER
 export const registerUser = async (req, res) => {
@@ -148,34 +169,95 @@ export const verifyEmail = async (req, res) => {
 
 // LOGIN
 export const loginUser = async (req, res) => {
-  const { email, password } = req.body;
+  const email = String(req.body?.email || "").trim().toLowerCase();
+  const password = String(req.body?.password || "");
 
   try {
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json("User not found");
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: "Email and password are required" });
+    }
 
-    if (user && (await bcrypt.compare(password, user.password))) {
+    console.log("[auth] user login request", { email, hasPassword: Boolean(password) });
+    const user = await User.findOne({ email });
+    console.log("[auth] user lookup result", {
+      email,
+      found: Boolean(user),
+      role: user?.role || null,
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const passwordMatched = await verifyPasswordAndUpgradeIfNeeded(user, password);
+    console.log("[auth] user password match result", { email, passwordMatched });
+
+    if (user && passwordMatched) {
 
       if (!user.isEmailVerified) {
-        return res.status(401).json({ message: "Please verify your email to login" });
+        return res.status(401).json({ success: false, message: "Please verify your email to login" });
       }
 
-      generateTokenAndSetCookie(user, res);
+      const token = generateTokenAndSetCookie(user, res);
 
-      res.json({
-        message: "Login successful",
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      });
+      res.json(buildAuthResponse(user, token, "Login successful"));
 
     } else {
-      res.status(401).json({ message: "Invalid credentials" });
+      res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const loginAdminUser = async (req, res) => {
+  const email = String(req.body?.email || "").trim().toLowerCase();
+  const password = String(req.body?.password || "");
+
+  try {
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: "Email and password are required" });
+    }
+
+    console.log("[auth] admin login request", { email, hasPassword: Boolean(password) });
+
+    if (email === DEFAULT_ADMIN.email) {
+      await ensureDefaultAdminUser();
+    }
+
+    const user = await User.findOne({ email });
+    console.log("[auth] admin lookup result", {
+      email,
+      found: Boolean(user),
+      role: user?.role || null,
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Admin user not found" });
+    }
+
+    const passwordMatched = await verifyPasswordAndUpgradeIfNeeded(user, password);
+    console.log("[auth] admin password match result", { email, passwordMatched });
+
+    if (!passwordMatched) {
+      return res.status(401).json({ success: false, message: "Invalid admin credentials" });
+    }
+
+    if (user.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Administrative privileges required" });
+    }
+
+    if (!user.isEmailVerified) {
+      user.isEmailVerified = true;
+      await user.save();
+      console.log("[auth] admin email verification restored", { email });
+    }
+
+    const token = generateTokenAndSetCookie(user, res);
+    return res.status(200).json(buildAuthResponse(user, token, "Admin login successful"));
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -204,6 +286,8 @@ export const setupAdminUser = async (req, res) => {
       email,
       password: hashedPassword,
       mobile: mobile || "0000000000",
+      address: "Admin HQ",
+      city: "System",
       role: "admin",
       isEmailVerified: true // Pre-verify the master admin
     });
@@ -211,18 +295,12 @@ export const setupAdminUser = async (req, res) => {
     await adminUser.save();
 
     // 4. Issue token immediately
-    generateTokenAndSetCookie(adminUser, res);
+    const token = generateTokenAndSetCookie(adminUser, res);
 
-    res.status(201).json({
-      message: "Master Administrator account successfully initialized.",
-      _id: adminUser._id,
-      name: adminUser.name,
-      email: adminUser.email,
-      role: adminUser.role
-    });
+    res.status(201).json(buildAuthResponse(adminUser, token, "Master Administrator account successfully initialized."));
 
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

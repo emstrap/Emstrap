@@ -18,13 +18,15 @@ const DriverHistory = lazy(() => import("../pages/ambulance/DriverHistory"));
 const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("../pages/admin/AdminUsers"));
 const AdminEmergencies = lazy(() => import("../pages/admin/AdminEmergencies"));
+const AdminBookings = lazy(() => import("../pages/admin/AdminBookings"));
+const Hospital = lazy(() => import("../pages/admin/Hospital"));
+const AdminAmbulance = lazy(() => import("../pages/admin/AdminAmbulance"));
 const AdminSetup = lazy(() => import("../pages/auth/AdminSetup"));
 const AdminLogin = lazy(() => import("../pages/auth/AdminLogin"));
 
 const PoliceLayout = lazy(() => import("../pages/Police/PoliceLayout"));
 const PoliceDashboard = lazy(() => import("../pages/Police/PoliceDashboard"));
 const LiveMap = lazy(() => import("../pages/Police/LiveMap"));
-const PoliceAnalytics = lazy(() => import("../pages/Police/PoliceAnalytics"));
 
 export default function AppRoutes() {
   return (
@@ -77,16 +79,40 @@ export default function AppRoutes() {
             <AdminDashboard />
           </ProtectedRoute>
         } />
+
+        <Route path="/admin/overview" element={
+          <ProtectedRoute role="admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
         
         <Route path="/admin/users" element={
           <ProtectedRoute role="admin">
             <AdminUsers />
           </ProtectedRoute>
         } />
-        
+
         <Route path="/admin/emergencies" element={
           <ProtectedRoute role="admin">
             <AdminEmergencies />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/admin/bookings" element={
+          <ProtectedRoute role="admin">
+            <AdminBookings />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/admin/hospitals" element={
+          <ProtectedRoute role="admin">
+            <Hospital />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/admin/ambulance" element={
+          <ProtectedRoute role="admin">
+            <AdminAmbulance />
           </ProtectedRoute>
         } />
 
@@ -94,7 +120,6 @@ export default function AppRoutes() {
         <Route path="/police" element={<ProtectedRoute role="police"><PoliceLayout /></ProtectedRoute>}>
             <Route index element={<PoliceDashboard />} />
             <Route path="map" element={<LiveMap />} />
-            <Route path="analytics" element={<PoliceAnalytics />} />
         </Route>
       </Routes>
     </Suspense>

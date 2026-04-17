@@ -13,11 +13,9 @@ const sendEmail = async (options) => {
             }
         };
     } else {
-        // Fallback or dev: use Ethereal Mail or just log it
-        // We will just create a dummy transporter for now
-        // And we will log the email content to console
+        // Dev mode without SMTP credentials logs the email content to console.
         transporterConfig = {
-            jsonTransport: true // Just returns the message object
+            jsonTransport: true
         };
     }
 

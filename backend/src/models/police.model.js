@@ -1,13 +1,13 @@
 import { Schema, model } from "mongoose";
 
-const hospitalSchema = new Schema(
+const policeSchema = new Schema(
   {
     name: {
       type: String,
       required: true,
       trim: true,
     },
-    location: {
+    station: {
       type: String,
       required: true,
       trim: true,
@@ -29,4 +29,4 @@ const hospitalSchema = new Schema(
   }
 );
 
-export default model("Hospital", hospitalSchema);
+export default model("Police", policeSchema);

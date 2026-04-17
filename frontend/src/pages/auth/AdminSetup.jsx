@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { setupAdmin } from "../../services/api";
+import { getErrorMessage } from "../../services/api";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Container from "../../components/layout/Container";
@@ -19,10 +20,10 @@ export default function AdminSetup() {
         try {
             const data = await setupAdmin({ name, email, password, mobile });
             loginUser(data);
-            toast.success("Admin setup successful! You are now logged in as the Master Admin.");
+            toast.success(data.message || "Admin setup successful! You are now logged in as the Master Admin.");
             navigate("/admin");
         } catch (error) {
-            toast.error(error.response?.data?.message || "Setup failed. Check inputs or if an Admin already exists.");
+            toast.error(getErrorMessage(error, "Setup failed. Check inputs or if an Admin already exists."));
         }
     };
 

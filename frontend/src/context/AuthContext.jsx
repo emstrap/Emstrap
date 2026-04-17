@@ -26,9 +26,14 @@ export function AuthProvider({ children }) {
   }, []);
 
   const loginUser = (data) => {
-    // We no longer save token or user to localStorage; the cookie manages the session
-    // Just save the user obj in React state
-    setUser(data);
+    const nextUser = data?.user || data;
+    const token = data?.token;
+
+    if (token) {
+      window.localStorage.setItem("authToken", token);
+    }
+
+    setUser(nextUser);
   };
 
   const logoutUser = async () => {
@@ -37,6 +42,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.error("Logout failed", err);
     }
+    window.localStorage.removeItem("authToken");
     setUser(null);
   };
 

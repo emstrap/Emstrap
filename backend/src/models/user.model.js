@@ -37,7 +37,7 @@ const userSchema = new Schema({
     },
     role: {
         type: String,
-        enum: ['user', 'ambulance_driver', 'hospital_admin', 'police', 'police_hq'],
+        enum: ['user', 'ambulance', 'ambulance_driver', 'hospital', 'hospital_admin', 'police', 'police_hq', 'admin'],
         default: 'user'
     },
     vehicleNumber: {

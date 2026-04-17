@@ -31,7 +31,7 @@ const emergencyRequestSchema = new mongoose.Schema(
 
     ambulance: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Ambulance",
+      ref: "User",
       default: null,
     },
 

@@ -3,7 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar";
 import Container from "../../components/layout/Container";
-import { loginAPI } from "../../services/api";
+import { getErrorMessage, loginAPI } from "../../services/api";
 
 import toast from "react-hot-toast";
 
@@ -24,16 +24,16 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      const data = await loginAPI({ email, password });
+      const data = await loginAPI({ email: email.trim().toLowerCase(), password });
 
       loginUser(data);
-      toast.success("Login successful!");
+      toast.success(data.message || "Login successful!");
 
       // redirect based on role (mapping DB role to route)
-      if (data.role === "admin") navigate("/admin");
+      if ((data.user?.role || data.role) === "admin") navigate("/admin");
       else navigate("/dashboard");
-    } catch {
-      toast.error("Login failed. Please check your credentials.");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Login failed. Please check your credentials."));
     }
   };
   return (

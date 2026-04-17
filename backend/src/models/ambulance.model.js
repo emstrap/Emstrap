@@ -5,37 +5,40 @@ const ambulanceSchema = new Schema(
     driverName: {
       type: String,
       required: true,
-    },
-
-    phone: {
-      type: String,
-      required: true,
+      trim: true,
     },
 
     vehicleNumber: {
       type: String,
       required: true,
+      trim: true,
       unique: true,
     },
 
-    role: {
+    contact: {
       type: String,
-      default: "ambulance",
+      required: true,
+      trim: true,
     },
 
-    isAvailable: {
-      type: Boolean,
-      default: true,
+    location: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    status: {
+      type: String,
+      enum: ["AVAILABLE", "BUSY", "OFFLINE", "MAINTENANCE"],
+      default: "AVAILABLE",
     },
 
     currentLocation: {
       latitude: {
         type: Number,
-        required: true,
       },
       longitude: {
         type: Number,
-        required: true,
       },
     },
 
