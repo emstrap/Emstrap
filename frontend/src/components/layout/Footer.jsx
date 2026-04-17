@@ -7,7 +7,9 @@ export default function Footer() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  if (location.pathname.startsWith('/police')) {
+  const isPoliceContext = user?.role === 'police' || user?.role === 'police_hq';
+
+  if (location.pathname.startsWith('/police') || isPoliceContext) {
       return null;
   }
 

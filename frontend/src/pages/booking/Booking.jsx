@@ -174,6 +174,7 @@ export default function Booking() {
                                     placeholder="Where do you need to go?"
                                     value={dropoff}
                                     onSelect={setDropoff}
+                                    hideCurrentLocation={true}
                                 />
                             </div>
                         </div>

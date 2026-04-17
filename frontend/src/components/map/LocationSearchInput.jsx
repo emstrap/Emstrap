@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 
-export default function LocationSearchInput({ label, placeholder, value, onSelect }) {
+export default function LocationSearchInput({ label, placeholder, value, onSelect, hideCurrentLocation = false }) {
     const [query, setQuery] = useState(value?.address || "");
     const [results, setResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
@@ -134,19 +134,21 @@ export default function LocationSearchInput({ label, placeholder, value, onSelec
                     value={query}
                     onChange={handleInputChange}
                     onFocus={() => { if (results.length > 0) setShowDropdown(true); }}
-                    className="w-full border dark:border-gray-700 py-3 pl-3 pr-12 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
+                    className={`w-full border dark:border-gray-700 py-3 pl-3 ${hideCurrentLocation ? 'pr-3' : 'pr-12'} rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors`}
                 />
 
-                <button
-                    type="button"
-                    onClick={handleCurrentLocation}
-                    className="absolute right-3 text-gray-400 hover:text-red-500 transition-colors z-10 p-1 flex items-center justify-center bg-transparent group"
-                    title="Use Current Location"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 fill-current" viewBox="0 0 24 24">
-                        <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
-                    </svg>
-                </button>
+                {!hideCurrentLocation && (
+                    <button
+                        type="button"
+                        onClick={handleCurrentLocation}
+                        className="absolute right-3 text-gray-400 hover:text-red-500 transition-colors z-10 p-1 flex items-center justify-center bg-transparent group"
+                        title="Use Current Location"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 fill-current" viewBox="0 0 24 24">
+                            <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94-7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+                        </svg>
+                    </button>
+                )}
             </div>
 
             {/* Custom Dropdown Results */}

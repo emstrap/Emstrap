@@ -146,6 +146,7 @@ export default function Navbar() {
                                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
                               </div>
                               <button
+                                onMouseDown={(e) => e.preventDefault()}
                                 onClick={() => { setDropdownOpen(false); navigate("/profile"); }}
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                               >
@@ -222,6 +223,7 @@ export default function Navbar() {
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
                     </div>
                     <button
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => { setDropdownOpen(false); navigate("/profile"); }}
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                     >
@@ -235,6 +237,7 @@ export default function Navbar() {
                       {theme === 'light' ? 'Dark Theme' : 'Light Theme'}
                     </button>
                     <button
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => { setDropdownOpen(false); logoutUser(); navigate("/"); }}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-gray-700 font-semibold rounded-b-xl"
                     >

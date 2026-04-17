@@ -64,10 +64,16 @@ export default function UserProfile() {
         }
     };
 
+    const isPoliceContext = user?.role === 'police' || user?.role === 'police_hq';
+
     return (
         <>
             <Navbar />
-            <Container>
+            <main
+                className={isPoliceContext ? "transition-all duration-300 min-h-screen" : "flex-grow"}
+                style={isPoliceContext ? { paddingLeft: 'var(--sidebar-width)', paddingTop: '4rem' } : {}}
+            >
+                <Container>
                 <div className="max-w-xl mx-auto mt-10 p-8 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 transition-colors">
                     <div className="flex flex-col items-center mb-8">
                         <div className="w-24 h-24 rounded-full bg-red-600 text-white font-bold text-4xl flex items-center justify-center mb-4 shadow-lg">
@@ -212,6 +218,7 @@ export default function UserProfile() {
                     )}
                 </div>
             </Container>
+        </main>
         </>
     );
 }
