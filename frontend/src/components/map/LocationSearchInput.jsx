@@ -111,11 +111,15 @@ export default function LocationSearchInput({ label, placeholder, value, onSelec
                 }
             },
             (error) => {
-                console.error(error);
+                console.error("Geolocation Error: ", error);
                 toast.dismiss(loadToast);
-                toast.error("Failed to get location. Please enable GPS permissions.");
+                if (error.code === error.TIMEOUT) {
+                    toast.error("GPS request timed out. Try again or check signal.");
+                } else {
+                    toast.error("Failed to get location. Please enable GPS permissions.");
+                }
             },
-            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
         );
     };
 
