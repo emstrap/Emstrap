@@ -25,7 +25,8 @@ export const createBooking = async (req, res) => {
         // Create an equivalent EmergencyRequest so ambulance drivers receive it in their dashboard
         const emergencyReq = await EmergencyRequest.create({
             user: req.user._id,
-            location: { latitude: pickupLocation.latitude, longitude: pickupLocation.longitude }
+            location: { latitude: pickupLocation.latitude, longitude: pickupLocation.longitude },
+            requestType: "BOOKING"
         });
 
         // Emit to all ambulances

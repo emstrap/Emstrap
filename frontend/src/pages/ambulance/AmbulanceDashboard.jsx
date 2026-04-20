@@ -255,17 +255,19 @@ export default function AmbulanceDashboard() {
                    ({currentAssignment.location?.latitude?.toFixed(4)}, {currentAssignment.location?.longitude?.toFixed(4)})
                  </p>
                </div>
-               <div className="flex flex-col gap-1 ml-auto">
-                 <Link to="/booking-history" className="text-xs bg-white text-green-700 px-3 py-1.5 rounded-full font-bold shadow-sm text-center">
-                   Details
-                 </Link>
-                 <button 
-                   onClick={handleCancelAssignment}
-                   className="text-[10px] bg-red-500 text-white px-3 py-1 rounded-full font-bold shadow-sm"
-                 >
-                   Cancel
-                 </button>
-               </div>
+                <div className="flex flex-col gap-1 ml-auto">
+                  <Link to="/booking-history" className="text-xs bg-white text-green-700 px-3 py-1.5 rounded-full font-bold shadow-sm text-center">
+                    Details
+                  </Link>
+                  {currentAssignment.requestType === "BOOKING" && (
+                    <button 
+                      onClick={handleCancelAssignment}
+                      className="text-[10px] bg-red-500 text-white px-3 py-1 rounded-full font-bold shadow-sm"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
              </div>
           </div>
         )}

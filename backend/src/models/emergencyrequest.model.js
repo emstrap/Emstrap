@@ -38,7 +38,12 @@ const emergencyRequestSchema = new mongoose.Schema(
     declinedBy: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: "User"
-    }]
+    }],
+    requestType: {
+      type: String,
+      enum: ["EMERGENCY", "BOOKING"],
+      default: "EMERGENCY",
+    },
   },
   { timestamps: true }
 );

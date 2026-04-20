@@ -10,6 +10,7 @@ export const createEmergencyRequest = async (req, res) => {
       user: req.user?._id || undefined,
       imageUrl: imageUrl || "",
       location: { latitude, longitude },
+      requestType: "EMERGENCY",
     });
 
     // 2️⃣ Emit to all ambulances
