@@ -147,6 +147,11 @@ export const deleteBookingById = async (bookingId) => {
   return res.data;
 };
 
+export const cancelBookingAPI = async (id) => {
+  const res = await API.put(`/api/bookings/${id}/cancel`);
+  return res.data;
+};
+
 export const updateEmergencyStatus = async (emergencyId, status) => {
   const res = await API.put(`/api/admin/emergencies/${emergencyId}/status`, { status });
   return res.data;

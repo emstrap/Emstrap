@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import API from "../../services/api";
 import logo from "../../assets/logo.png";
 
 const icons = {
@@ -14,7 +15,7 @@ const icons = {
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const { user, logoutUser } = useAuth();
+  const { user, logoutUser, loginUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -46,6 +47,23 @@ export default function Navbar() {
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
+  };
+
+  const toggleDriverStatus = async (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    try {
+      const newStatus = user.driverStatus === 'LIVE' ? 'OFFLINE' : 'LIVE';
+      const res = await API.put("/auth/profile", { driverStatus: newStatus });
+      if (res.data && res.data.user) {
+        loginUser({ ...user, driverStatus: res.data.user.driverStatus });
+      }
+    } catch (err) {
+      console.error("Failed to update status", err);
+    }
   };
 
   if (isPoliceContext) {
@@ -229,6 +247,20 @@ export default function Navbar() {
                     >
                       Profile
                     </button>
+                    {(user?.role === 'ambulance' || user?.role === 'ambulance_driver') && (
+                      <div className="px-4 py-2 border-b dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <label className="flex items-center cursor-pointer justify-between w-full" onMouseDown={(e) => e.preventDefault()} onClick={toggleDriverStatus}>
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Status: <span className={user.driverStatus === 'LIVE' ? 'text-green-500 font-bold' : 'text-gray-500'}>{user.driverStatus === 'LIVE' ? 'Live' : 'Offline'}</span>
+                          </span>
+                          <div className="relative">
+                            <input type="checkbox" className="sr-only" checked={user.driverStatus === 'LIVE'} readOnly />
+                            <div className={`block w-10 h-6 rounded-full transition-colors ${user.driverStatus === 'LIVE' ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                            <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${user.driverStatus === 'LIVE' ? 'transform translate-x-4' : ''}`}></div>
+                          </div>
+                        </label>
+                      </div>
+                    )}
                     <button
                       onMouseDown={(e) => e.preventDefault()} // prevent blur
                       onClick={toggleTheme}
@@ -345,12 +377,23 @@ export default function Navbar() {
                   </button>
                 )}
                 {(user?.role === 'ambulance' || user?.role === 'ambulance_driver') && (
-                  <button
-                    onClick={() => { setOpen(false); navigate(user ? "/booking-history" : "/login"); }}
-                    className="w-full text-left px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl font-medium transition-colors text-lg"
-                  >
-                    Booking History
-                  </button>
+                  <>
+                    <button
+                      onClick={() => { setOpen(false); navigate(user ? "/booking-history" : "/login"); }}
+                      className="w-full text-left px-4 py-3 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl font-medium transition-colors text-lg"
+                    >
+                      Booking History
+                    </button>
+                    <div className="px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl cursor-pointer" onClick={toggleDriverStatus}>
+                      <span className="text-lg font-medium text-gray-700 dark:text-gray-200">
+                        Status: <span className={user.driverStatus === 'LIVE' ? 'text-green-500 font-bold' : 'text-gray-500'}>{user.driverStatus === 'LIVE' ? 'Live' : 'Offline'}</span>
+                      </span>
+                      <div className="relative">
+                        <div className={`block w-12 h-7 rounded-full transition-colors ${user.driverStatus === 'LIVE' ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                        <div className={`dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform ${user.driverStatus === 'LIVE' ? 'transform translate-x-5' : ''}`}></div>
+                      </div>
+                    </div>
+                  </>
                 )}
                 <button
                   onClick={() => { setOpen(false); toggleTheme(); }}

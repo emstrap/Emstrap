@@ -47,11 +47,12 @@ export const getStats = async (req, res) => {
 
 export const getOverviewStats = async (req, res) => {
   try {
-    const [users, bookings, hospitals, emergencies] = await Promise.all([
+    const [users, bookings, hospitals, emergencies, liveAmbulances] = await Promise.all([
       User.countDocuments(),
       Booking.countDocuments(),
       Hospital.countDocuments(),
       Emergency.countDocuments(),
+      User.countDocuments({ role: { $in: ["ambulance", "ambulance_driver"] }, driverStatus: "LIVE" }),
     ]);
 
     return res.status(200).json({
@@ -59,6 +60,7 @@ export const getOverviewStats = async (req, res) => {
       bookings,
       hospitals,
       emergencies,
+      liveAmbulances,
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Error fetching overview stats", error: error.message });

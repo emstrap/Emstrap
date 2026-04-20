@@ -120,11 +120,15 @@ export const getDriverHistory = async (req, res) => {
     const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000);
 
     // 1. New/Ongoing Requests within 1 minute that this driver hasn't declined
-    const ongoing = await emergencyRequestSchema.find({
-      status: "PENDING",
-      createdAt: { $gte: oneMinuteAgo },
-      declinedBy: { $ne: driverId }
-    }).sort({ createdAt: -1 });
+    // Only fetch if driver is LIVE
+    let ongoing = [];
+    if (req.user.driverStatus === "LIVE") {
+      ongoing = await emergencyRequestSchema.find({
+        status: "PENDING",
+        createdAt: { $gte: oneMinuteAgo },
+        declinedBy: { $ne: driverId }
+      }).sort({ createdAt: -1 });
+    }
 
     let acceptedQuery = {
       ambulance: driverId,

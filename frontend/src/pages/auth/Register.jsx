@@ -30,15 +30,15 @@ export default function Register() {
   const handleRegister = async () => {
     // Validate Mobile Number
     if (!form.mobile || !/^[6-9]\d{9}$/.test(form.mobile)) {
-       toast.error("Please enter a valid 10-digit Indian mobile number.");
-       return;
+      toast.error("Please enter a valid 10-digit Indian mobile number.");
+      return;
     }
 
     // Validate Strong Password
     const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!strongPasswordRegex.test(form.password)) {
-       toast.error("Password must be at least 8 characters long and include an uppercase letter, lowercase letter, number, and special character (e.g., @, $, !).");
-       return;
+      toast.error("Password must be at least 8 characters long and include an uppercase letter, lowercase letter, number, and special character (e.g., @, $, !).");
+      return;
     }
 
     setStatus("loading");
@@ -157,8 +157,6 @@ export default function Register() {
                   <option value="">Choose Role</option>
                   <option value="user">User</option>
                   <option value="ambulance_driver">Ambulance Driver</option>
-                  <option value="hospital_admin">Hospital Admin</option>
-                  <option value="police">Police</option>
                 </select>
 
                 {form.role === "ambulance_driver" && (

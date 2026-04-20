@@ -44,6 +44,11 @@ const userSchema = new Schema({
         type: String,
         required: false
     },
+    driverStatus: {
+        type: String,
+        enum: ['LIVE', 'OFFLINE'],
+        default: 'OFFLINE'
+    },
     createdAt: {
         type: Date,
         default: Date.now

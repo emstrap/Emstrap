@@ -1,7 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
 import { API_URL } from "../../services/api";
-import { getDriverHistory, acceptEmergency, declineEmergency } from "../../services/api";
+import { getDriverHistory, acceptEmergency, declineEmergency, cancelEmergency } from "../../services/api";
+import API from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 import Navbar from "../../components/layout/Navbar";
 import Container from "../../components/layout/Container";
 import LiveTrackingMap from "../../components/map/LiveTrackingMap";
@@ -9,6 +11,7 @@ import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 
 export default function AmbulanceDashboard() {
+  const { user, loginUser } = useAuth();
   const [requests, setRequests] = useState([]); // Actively pending nearby emergencies
   // "active" state is now represented by mapping over requests in a modal over the map
   // "accepted" history is tracked to route the driver to the user, handled inside the map
@@ -39,9 +42,6 @@ export default function AmbulanceDashboard() {
     const newSocket = io(API_URL, { withCredentials: true });
     setSocket(newSocket);
 
-    // Join room
-    newSocket.emit("join_ambulance", {});
-
     newSocket.on("new_emergency_request", (data) => {
       // Add only if not already there to prevent dupes
       setRequests((prev) => {
@@ -67,6 +67,21 @@ export default function AmbulanceDashboard() {
       }
     };
   }, []);
+
+  // Sync Room Membership with Driver Status
+  useEffect(() => {
+    if (!socket || !user) return;
+
+    if (user.driverStatus === 'LIVE') {
+      socket.emit("join_ambulance", {});
+      fetchHistory(); // Refresh to get active requests when going online
+      console.log("Joined ambulance room");
+    } else {
+      socket.emit("leave_ambulance", {});
+      setRequests([]); // Clear pending requests when going offline
+      console.log("Left ambulance room");
+    }
+  }, [user?.driverStatus, socket]);
 
   // Cleanup effect: Remove requests older than 10 mins from the Active screen
   useEffect(() => {
@@ -170,6 +185,48 @@ export default function AmbulanceDashboard() {
     }
   };
 
+  const handleCancelAssignment = async () => {
+    if (!currentAssignment) return;
+    if (!window.confirm("Are you sure you want to cancel this emergency assignment?")) return;
+
+    try {
+      await cancelEmergency(currentAssignment._id);
+      toast.success("Assignment cancelled successfully");
+      
+      // Stop tracking and clean up
+      if (watchIdRef.current) {
+        if (typeof watchIdRef.current === 'number' && watchIdRef.current > 1000) {
+          clearInterval(watchIdRef.current);
+        } else {
+          navigator.geolocation.clearWatch(watchIdRef.current);
+        }
+      }
+      setDriverLocation(null);
+      setUserLocation(null);
+      fetchHistory(); // Move it to cancelled state
+      if (socket) {
+        socket.off("user_location");
+        socket.off("emergency_cancelled");
+      }
+    } catch (err) {
+      toast.error("Failed to cancel assignment");
+    }
+  };
+
+  const handleToggleStatus = async () => {
+    const newStatus = user?.driverStatus === 'LIVE' ? 'OFFLINE' : 'LIVE';
+    const loadingToast = toast.loading(`Switching to ${newStatus}...`);
+    try {
+      const res = await API.put("/auth/profile", { driverStatus: newStatus });
+      if (res.data && res.data.user) {
+        loginUser({ ...user, driverStatus: res.data.user.driverStatus });
+        toast.success(`You are now ${newStatus}`, { id: loadingToast });
+      }
+    } catch (err) {
+      toast.error("Failed to update status", { id: loadingToast });
+    }
+  };
+
   // The currently assigned emergency the driver is en route to
   const currentAssignment = acceptedHistory.length > 0 ? acceptedHistory[0] : null;
 
@@ -198,9 +255,17 @@ export default function AmbulanceDashboard() {
                    ({currentAssignment.location?.latitude?.toFixed(4)}, {currentAssignment.location?.longitude?.toFixed(4)})
                  </p>
                </div>
-               <Link to="/booking-history" className="ml-auto text-xs bg-white text-green-700 px-3 py-1.5 rounded-full font-bold shadow-sm">
-                 Details
-               </Link>
+               <div className="flex flex-col gap-1 ml-auto">
+                 <Link to="/booking-history" className="text-xs bg-white text-green-700 px-3 py-1.5 rounded-full font-bold shadow-sm text-center">
+                   Details
+                 </Link>
+                 <button 
+                   onClick={handleCancelAssignment}
+                   className="text-[10px] bg-red-500 text-white px-3 py-1 rounded-full font-bold shadow-sm"
+                 >
+                   Cancel
+                 </button>
+               </div>
              </div>
           </div>
         )}
@@ -240,10 +305,22 @@ export default function AmbulanceDashboard() {
           
           {/* Driver Status Chip at the very bottom when no modals */}
           {requests.length === 0 && !currentAssignment && (
-             <div className="mx-auto bg-gray-900/80 backdrop-blur-sm text-white px-5 py-3 rounded-full flex items-center gap-3 shadow-lg pointer-events-auto border border-gray-700">
-               <div className="w-3 h-3 bg-green-500 rounded-full animate-ping"></div>
-               <span className="font-semibold tracking-wide text-sm">Online & Looking for requests</span>
-             </div>
+             <button 
+               onClick={handleToggleStatus}
+               className="mx-auto bg-gray-900/90 hover:bg-black backdrop-blur-sm text-white px-6 py-3 rounded-full flex items-center gap-3 shadow-2xl pointer-events-auto border border-gray-700 transition-all active:scale-95 group"
+             >
+               {user?.driverStatus === 'LIVE' ? (
+                 <>
+                   <div className="w-3 h-3 bg-green-500 rounded-full animate-ping group-hover:bg-green-400"></div>
+                   <span className="font-bold tracking-wide text-sm uppercase">Go Offline</span>
+                 </>
+               ) : (
+                 <>
+                   <div className="w-3 h-3 bg-gray-500 rounded-full group-hover:bg-green-500"></div>
+                   <span className="font-bold tracking-wide text-sm uppercase text-gray-300 group-hover:text-white">Go Online</span>
+                 </>
+               )}
+             </button>
           )}
         </div>
       </div>

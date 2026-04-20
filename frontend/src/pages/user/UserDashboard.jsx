@@ -25,6 +25,19 @@ export default function UserDashboard() {
     fetchBookings();
   }, []);
 
+  const handleCancel = async (id) => {
+    if (!window.confirm("Are you sure you want to cancel this booking?")) return;
+    try {
+      await API.put(`/api/bookings/${id}/cancel`);
+      setBookings((prev) =>
+        prev.map((b) => (b._id === id ? { ...b, status: "CANCELLED" } : b))
+      );
+    } catch (err) {
+      console.error("Failed to cancel booking", err);
+      alert("Failed to cancel booking");
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -72,12 +85,24 @@ export default function UserDashboard() {
 
                   <div className="flex items-center gap-4">
                     <span className="font-bold text-xl text-gray-900 dark:text-gray-100">₹{b.estimatedPrice}</span>
-                    <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full ${b.status === "PENDING" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" :
-                      b.status === "COMPLETED" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
+                    <div className="flex flex-col items-end gap-2">
+                      <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full ${
+                        b.status === "PENDING" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" :
+                        b.status === "COMPLETED" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" :
+                        b.status === "CANCELLED" ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" :
                         "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
                       }`}>
-                      {b.status}
-                    </span>
+                        {b.status}
+                      </span>
+                      {b.status === "PENDING" || b.status === "ACCEPTED" || b.status === "IN_PROGRESS" ? (
+                        <button
+                          onClick={() => handleCancel(b._id)}
+                          className="text-red-600 hover:text-red-700 text-xs font-bold underline"
+                        >
+                          Cancel Booking
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               ))

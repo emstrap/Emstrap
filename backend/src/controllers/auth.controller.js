@@ -329,16 +329,21 @@ export const logoutUser = async (req, res) => {
 
 // UPDATE USER PROFILE
 export const updateUser = async (req, res) => {
-  const { name, email, mobile, city, address } = req.body;
+  const { name, email, mobile, city, address, driverStatus } = req.body;
   try {
     if (mobile && !/^[6-9]\d{9}$/.test(mobile)) {
         return res.status(400).json({ message: "Please enter a valid 10-digit Indian mobile number." });
     }
 
     const userId = req.user._id;
+    const updateFields = { name, email, mobile, city, address, updatedAt: Date.now() };
+    if (driverStatus) {
+      updateFields.driverStatus = driverStatus;
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { name, email, mobile, city, address, updatedAt: Date.now() },
+      updateFields,
       { new: true, runValidators: true }
     ).select('-password');
 

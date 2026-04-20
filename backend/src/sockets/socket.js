@@ -26,6 +26,11 @@ export const initSocket = (server) => {
       console.log(`Ambulance joined: ${socket.id}`);
     });
 
+    socket.on("leave_ambulance", (data) => {
+      socket.leave("ambulance");
+      console.log(`Ambulance left: ${socket.id}`);
+    });
+
     // Hospital joins hospital room
     socket.on("join_hospital", (data) => {
       socket.join("hospital");
