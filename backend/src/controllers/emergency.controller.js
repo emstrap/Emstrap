@@ -1,14 +1,23 @@
 import emergencyRequestSchema from "../models/emergencyrequest.model.js";
 import { getIO } from "../sockets/socket.js";
+import cloudinary from "../config/cloudinary.js";
 
 export const createEmergencyRequest = async (req, res) => {
   try {
     const { latitude, longitude, imageUrl } = req.body;
 
+    let secureImageUrl = "";
+    if (imageUrl) {
+      const uploadResponse = await cloudinary.uploader.upload(imageUrl, {
+        folder: "emergencies",
+      });
+      secureImageUrl = uploadResponse.secure_url;
+    }
+
     // 1️⃣ Create request
     const request = await emergencyRequestSchema.create({
       user: req.user?._id || undefined,
-      imageUrl: imageUrl || "",
+      imageUrl: secureImageUrl || "",
       location: { latitude, longitude },
       requestType: "EMERGENCY",
     });
