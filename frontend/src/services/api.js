@@ -117,6 +117,11 @@ export const getAlerts = async () => {
   return res.data;
 };
 
+export const updateHospitalAlertStatus = async (id, status) => {
+  const res = await API.put(`/api/emergencies/${id}/status`, { status });
+  return res.data;
+};
+
 export const getStats = async () => {
   const res = await API.get("/api/stats");
   return res.data;
@@ -168,4 +173,15 @@ export const getPoliceEmergencies = async () => {
   return res.data;
 };
 
+export const getPoliceCases = async () => {
+  const res = await API.get("/api/police/cases");
+  return res.data;
+};
+
+export const updatePoliceCaseStatus = async (caseId, status) => {
+  const res = await API.put(`/api/police/cases/${caseId}/status`, { status });
+  return res.data;
+};
+
 export default API;
+

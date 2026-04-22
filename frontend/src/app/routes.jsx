@@ -21,12 +21,11 @@ const AdminEmergencies = lazy(() => import("../pages/admin/AdminEmergencies"));
 const AdminBookings = lazy(() => import("../pages/admin/AdminBookings"));
 const Hospital = lazy(() => import("../pages/admin/Hospital"));
 const AdminAmbulance = lazy(() => import("../pages/admin/AdminAmbulance"));
-const AdminSetup = lazy(() => import("../pages/auth/AdminSetup"));
-const AdminLogin = lazy(() => import("../pages/auth/AdminLogin"));
 
 const PoliceLayout = lazy(() => import("../pages/Police/PoliceLayout"));
 const PoliceDashboard = lazy(() => import("../pages/Police/PoliceDashboard"));
 const LiveMap = lazy(() => import("../pages/Police/LiveMap"));
+
 
 export default function AppRoutes() {
   return (
@@ -45,9 +44,6 @@ export default function AppRoutes() {
         <Route path="/verify-email/:token" element={<VerifyEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
-        <Route path="/admin-setup" element={<AdminSetup />} />
-        <Route path="/admin-login" element={<AdminLogin />} />
-
         <Route path="/tracking" element={<Tracking />} />
 
         {/* Protected Routes */}
@@ -85,7 +81,7 @@ export default function AppRoutes() {
             <AdminDashboard />
           </ProtectedRoute>
         } />
-        
+
         <Route path="/admin/users" element={
           <ProtectedRoute role="admin">
             <AdminUsers />
@@ -118,8 +114,8 @@ export default function AppRoutes() {
 
         {/* Police Protected Hierarchy */}
         <Route path="/police" element={<ProtectedRoute role="police"><PoliceLayout /></ProtectedRoute>}>
-            <Route index element={<PoliceDashboard />} />
-            <Route path="map" element={<LiveMap />} />
+          <Route index element={<PoliceDashboard />} />
+          <Route path="map" element={<LiveMap />} />
         </Route>
       </Routes>
     </Suspense>

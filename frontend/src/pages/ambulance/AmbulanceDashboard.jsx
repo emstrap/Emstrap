@@ -99,14 +99,12 @@ export default function AmbulanceDashboard() {
 
   const handleAccept = async (id) => {
     try {
-      await acceptEmergency(id);
+      const res = await acceptEmergency(id);
+      const updatedRequest = res.data || res;
       toast.success("Emergency accepted!");
 
       // Move from active requests to accepted History locally
-      const requestToMove = requests.find(r => r._id === id);
-      if (requestToMove) {
-        setAcceptedHistory([requestToMove, ...acceptedHistory]);
-      }
+      setAcceptedHistory([updatedRequest, ...acceptedHistory]);
       setRequests(requests.filter((r) => r._id !== id));
 
       if (socket) {
@@ -249,12 +247,14 @@ export default function AmbulanceDashboard() {
                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center animate-pulse">
                  🚑
                </div>
-               <div className="text-white">
-                 <h3 className="font-bold text-base">En Route to Patient</h3>
-                 <p className="text-sm opacity-90 truncate">
-                   ({currentAssignment.location?.latitude?.toFixed(4)}, {currentAssignment.location?.longitude?.toFixed(4)})
-                 </p>
-               </div>
+                <div className="text-white flex-1 min-w-0">
+                  <h3 className="font-bold text-base truncate">
+                    En Route: {currentAssignment.hospital?.name || "Patient"}
+                  </h3>
+                  <p className="text-sm opacity-90 truncate">
+                    Hospital: {currentAssignment.hospital?.location || "N/A"}
+                  </p>
+                </div>
                 <div className="flex flex-col gap-1 ml-auto">
                   <Link to="/booking-history" className="text-xs bg-white text-green-700 px-3 py-1.5 rounded-full font-bold shadow-sm text-center">
                     Details

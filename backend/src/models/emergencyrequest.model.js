@@ -34,6 +34,11 @@ const emergencyRequestSchema = new mongoose.Schema(
       ref: "User",
       default: null,
     },
+    hospital: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Hospital",
+      default: null,
+    },
 
     declinedBy: [{
       type: mongoose.Schema.Types.ObjectId,

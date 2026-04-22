@@ -9,7 +9,7 @@ export default function ProtectedRoute({ children, role }) {
   }
 
   if (!user) {
-    return <Navigate to={role === "admin" ? "/admin-login" : "/login"} />;
+    return <Navigate to={role === "admin" ? "/login" : "/login"} />;
   }
 
   if (role) {

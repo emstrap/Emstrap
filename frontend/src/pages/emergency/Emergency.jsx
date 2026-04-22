@@ -81,7 +81,7 @@ export default function Emergency() {
             fetch("https://ipapi.co/json/")
               .then(res => res.json())
               .then(data => setLocation({ lat: data.latitude, lng: data.longitude }))
-              .catch(() => setLocation({ lat: 12.9716, lng: 77.5946 })); // Bangalore default
+              .catch(() => console.error("Location fallback failed"));
          },
          { enableHighAccuracy: true, timeout: 5000 }
        );
@@ -89,7 +89,7 @@ export default function Emergency() {
        fetch("https://ipapi.co/json/")
          .then(res => res.json())
          .then(data => setLocation({ lat: data.latitude, lng: data.longitude }))
-         .catch(() => setLocation({ lat: 12.9716, lng: 77.5946 }));
+         .catch(() => console.error("Location fallback failed"));
     }
 
     setStep("capture");

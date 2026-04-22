@@ -78,12 +78,11 @@ export default function AdminEmergencies() {
     "Assigned Driver": emergency.ambulance?.driverName || emergency.ambulance?.name || "Awaiting response",
     "Driver Contact": emergency.ambulance?.contact || emergency.ambulance?.mobile,
     "Vehicle Number": emergency.ambulance?.vehicleNumber,
-    Location: emergency.location,
-    "Image URL": emergency.imageUrl,
-    "Declined By": emergency.declinedBy,
+    Coordinates: emergency.location
+      ? `${emergency.location.latitude}, ${emergency.location.longitude}`
+      : "N/A",
+    Image: emergency.imageUrl || "N/A",
     "Created Date": formatDate(emergency.createdAt),
-    "Updated Date": formatDate(emergency.updatedAt),
-    "Emergency ID": emergency._id,
   });
 
   return (

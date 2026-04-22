@@ -5,7 +5,8 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const backendTarget = env.VITE_API_URL || 'http://localhost:5000';
+  const apiPort = env.VITE_API_PORT || '5000';
+  const backendTarget = env.VITE_API_URL || `http://localhost:${apiPort}`;
 
   return {
     plugins: [react(), tailwindcss()],

@@ -1,4 +1,5 @@
 import emergencyRequestSchema from "../models/emergencyrequest.model.js";
+import Hospital from "../models/hospital.model.js";
 import { getIO } from "../sockets/socket.js";
 import cloudinary from "../config/cloudinary.js";
 
@@ -22,10 +23,14 @@ export const createEmergencyRequest = async (req, res) => {
       requestType: "EMERGENCY",
     });
 
-    // 2️⃣ Emit to all ambulances
-    const io = getIO();
+    // 2️⃣ Populate user details for downstream consumers (hospital, police)
+    const populatedRequest = await emergencyRequestSchema
+      .findById(request._id)
+      .populate("user", "name mobile email address city");
 
-    io.to("ambulance").emit("new_emergency_request", request);
+    // 3️⃣ Emit to all ambulances
+    const io = getIO();
+    io.to("ambulance").emit("new_emergency_request", populatedRequest);
 
     res.status(201).json({
       success: true,
@@ -53,22 +58,35 @@ export const acceptEmergency = async (req, res) => {
       return res.status(400).json({ success: false, message: "Emergency is already handled by another driver" });
     }
 
+    // Find nearest hospital (Picking first one as placeholder for nearest logic)
+    const nearestHospital = await Hospital.findOne();
+    const hospitalId = nearestHospital ? nearestHospital._id : null;
+
     const request = await emergencyRequestSchema.findByIdAndUpdate(
       id,
-      { status: "AMBULANCE_ACCEPTED", ambulance: req.user._id },
+      { 
+        status: "AMBULANCE_ACCEPTED", 
+        ambulance: req.user._id,
+        hospital: hospitalId
+      },
       { new: true }
-    );
+    ).populate("user", "name mobile email address city")
+     .populate("ambulance", "name email mobile vehicleNumber driverName contact")
+     .populate("hospital", "name location contact email");
 
     const io = getIO();
     // Notify the user tracking the request
     io.to(`request_${id}`).emit("ambulance_assigned", {
-      eta: "5 mins", // static for demo
-      driverName: req.user.name || "Default Driver",
-      vehicleNumber: req.user.vehicleNumber || "KA-01-AB-1234",
+      eta: "Calculating...", // or some other more dynamic placeholder if you don't have real ETA
+      driverName: req.user.name || "Driver",
+      vehicleNumber: req.user.vehicleNumber || "",
+      hospitalName: request.hospital?.name || "Assigning...",
+      hospitalLocation: request.hospital?.location || "N/A",
     });
 
     // Notify Hospitals & Police
     io.to("hospital").emit("hospital_alert", { request });
+    io.to("police").emit("police_new_case", { request });
     io.to("police").emit("police_alert", { request });
 
     // Broadcast that this emergency has been accepted so other drivers' dashboards drop it

@@ -66,3 +66,26 @@ export const getOverviewStats = async (req, res) => {
     return res.status(500).json({ success: false, message: "Error fetching overview stats", error: error.message });
   }
 };
+export const updateEmergencyStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const validStatuses = ["PENDING", "AMBULANCE_ACCEPTED", "COMPLETED", "CANCELLED"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: "Invalid status" });
+    }
+
+    const updated = await Emergency.findByIdAndUpdate(id, { status }, { new: true })
+      .populate("user", "name email mobile city")
+      .populate("ambulance", "name email mobile vehicleNumber driverName contact");
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: "Emergency not found" });
+    }
+
+    return res.status(200).json({ success: true, message: "Status updated", emergency: updated });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Error updating status", error: error.message });
+  }
+};

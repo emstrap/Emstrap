@@ -17,7 +17,7 @@ export default function AdminSidebar() {
 
   const handleLogout = async () => {
     await logoutUser();
-    navigate("/admin-login");
+    navigate("/login");
   };
 
   return (
@@ -36,11 +36,10 @@ export default function AdminSidebar() {
             <Link
               key={item.name}
               to={item.path}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold ${
-                isActive
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-semibold ${isActive
                   ? "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 shadow-sm"
                   : "text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700/50"
-              }`}
+                }`}
             >
               <span className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-sm">{item.icon}</span>
               {item.name}

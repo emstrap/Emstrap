@@ -2,10 +2,33 @@ import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import Navbar from "../../components/layout/Navbar";
 import Container from "../../components/layout/Container";
-import { API_URL, getAlerts, getErrorMessage, getStats } from "../../services/api";
+import { API_URL, getAlerts, getErrorMessage, getStats, updateHospitalAlertStatus } from "../../services/api";
 import AdminDetailGrid from "../../components/admin/AdminDetailGrid";
 import AdminModal from "../../components/admin/AdminModal";
 import { formatDate, getStatusBadgeClasses } from "../../components/admin/admin.utils";
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
+import L from "leaflet";
+
+const ambulanceIcon = L.divIcon({
+    html: `<div class="bg-white rounded-full p-2 text-xl shadow-lg border-2 border-red-500 flex items-center justify-center">🚑</div>`,
+    className: "custom-leaflet-icon",
+    iconSize: [40, 40],
+    iconAnchor: [20, 20]
+});
+
+const patientIcon = L.divIcon({
+    html: `<div class="bg-white rounded-full p-2 text-xl shadow-lg border-2 border-blue-500 flex items-center justify-center">👤</div>`,
+    className: "custom-leaflet-icon",
+    iconSize: [40, 40],
+    iconAnchor: [20, 20]
+});
+
+const hospitalIcon = L.divIcon({
+    html: `<div class="bg-white rounded-full p-2 text-xl shadow-lg border-2 border-emerald-500 flex items-center justify-center">🏥</div>`,
+    className: "custom-leaflet-icon",
+    iconSize: [40, 40],
+    iconAnchor: [20, 20]
+});
 
 export default function HospitalDashboard() {
   const [alerts, setAlerts] = useState([]);
@@ -16,12 +39,13 @@ export default function HospitalDashboard() {
     totalBookings: 0,
   });
   const [selectedAlert, setSelectedAlert] = useState(null);
+  const [trackingAlert, setTrackingAlert] = useState(null);
+  const [ambulanceLocations, setAmbulanceLocations] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const fetchDashboardData = async () => {
     setLoading(true);
-
     try {
       const [alertsRes, statsRes] = await Promise.all([getAlerts(), getStats()]);
       if (alertsRes.success) setAlerts(alertsRes.alerts || []);
@@ -45,86 +69,255 @@ export default function HospitalDashboard() {
       setAlerts((prev) => [data.request, ...prev]);
     });
 
+    // Listen for live ambulance location updates
+    newSocket.on("update_location", (data) => {
+      setAmbulanceLocations((prev) => ({
+        ...prev,
+        [data.requestId]: { lat: data.lat, lng: data.lng }
+      }));
+    });
+
     return () => newSocket.close();
   }, []);
 
-  const getAlertDetails = (alert) => ({
-    Status: alert.status,
-    "Patient Name": alert.user?.name,
-    "Patient Email": alert.user?.email,
-    "Patient Mobile": alert.user?.mobile,
-    Location: alert.location,
-    Ambulance: alert.ambulance,
-    "Image URL": alert.imageUrl,
-    "Created Date": formatDate(alert.createdAt),
-    "Updated Date": formatDate(alert.updatedAt),
-    "Alert ID": alert._id,
-  });
+  const handleStatusUpdate = async (id, status) => {
+    try {
+      const res = await updateHospitalAlertStatus(id, status);
+      if (res.success) {
+        setAlerts((prev) => prev.map((a) => a._id === id ? res.emergency : a));
+        if (selectedAlert?._id === id) setSelectedAlert(res.emergency);
+      }
+    } catch (err) {
+      console.error("Failed to update status", err);
+    }
+  };
+
+  const getAlertDetails = (alert) => {
+    const liveLoc = ambulanceLocations[alert._id];
+    return {
+      Status: alert.status,
+      "Patient Name": alert.user?.name || "Anonymous",
+      "Patient Mobile": alert.user?.mobile || "N/A",
+      "Pickup Location": alert.location
+        ? `${alert.location.latitude}, ${alert.location.longitude}`
+        : "N/A",
+      "Destination Hospital": alert.hospital?.name || "Assigning...",
+      "Ambulance Driver": alert.ambulance?.name || "Pending",
+      "Live Location": liveLoc 
+        ? `${liveLoc.lat.toFixed(4)}, ${liveLoc.lng.toFixed(4)} (Live Update)`
+        : "Waiting for signal...",
+      Image: alert.imageUrl || "N/A",
+      "Created Date": formatDate(alert.createdAt),
+    };
+  };
 
   return (
-    <>
+    <div className="min-h-screen bg-gray-50/50">
       <Navbar />
       <Container>
-        <h1 className="text-3xl font-bold mt-10">Hospital ER Dashboard</h1>
-        <p className="text-gray-500 mb-6">Monitoring incoming ambulance arrivals with live backend data.</p>
+        <div className="py-10">
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Hospital ER Dashboard</h1>
+          <p className="text-gray-500 mt-1 font-medium italic">Monitoring incoming ambulance arrivals with live backend data.</p>
 
-        {error ? (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-            {error}
-          </div>
-        ) : null}
-
-        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
-          {[
-            ["Total Alerts", stats.totalAlerts],
-            ["Active Alerts", stats.activeAlerts],
-            ["Hospitals", stats.totalHospitals],
-            ["Bookings", stats.totalBookings],
-          ].map(([label, value]) => (
-            <div key={label} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-              <p className="text-sm font-semibold text-gray-500">{label}</p>
-              <p className="mt-2 text-3xl font-black text-gray-900">{value || 0}</p>
+          {error ? (
+            <div className="mt-6 rounded-2xl border border-red-100 bg-red-50/50 p-4 text-red-700 font-medium">
+              {error}
             </div>
-          ))}
-        </div>
+          ) : null}
 
-        <div className="space-y-4">
-          {loading ? (
-            <div className="text-center p-10 text-gray-400 bg-gray-50 rounded-xl border border-dashed">
-              Loading live emergency alerts...
-            </div>
-          ) : alerts.map((alert) => (
-            <button
-              type="button"
-              key={alert._id}
-              onClick={() => setSelectedAlert(alert)}
-              className="block w-full text-left p-4 border border-red-200 rounded-xl bg-red-50 hover:bg-red-100 transition-colors"
-            >
-              <span className={`text-xs px-2 py-1 rounded-full uppercase font-bold ${getStatusBadgeClasses(alert.status)}`}>
-                {alert.status || "PENDING"}
-              </span>
-              <p className="mt-2 text-sm text-gray-700">
-                {alert.user?.name ? `${alert.user.name} needs emergency support.` : "Emergency alert received."}
-              </p>
-              <div className="mt-2 bg-white rounded p-2 text-sm shadow inline-block">
-                Created: {formatDate(alert.createdAt)}
+          <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-4">
+            {[
+              ["Total Alerts", stats.totalAlerts],
+              ["Active Alerts", stats.activeAlerts],
+              ["Hospitals", stats.totalHospitals],
+              ["Bookings", stats.totalBookings],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-3xl border border-white bg-white p-6 shadow-sm ring-1 ring-gray-100">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{label}</p>
+                <p className="mt-2 text-4xl font-black text-gray-900">{value || 0}</p>
               </div>
-            </button>
-          ))}
+            ))}
+          </div>
 
-          {!loading && alerts.length === 0 && (
-            <div className="text-center p-10 text-gray-400 bg-gray-50 rounded-xl border border-dashed">
-              No incoming emergencies right now.
-            </div>
-          )}
+          <div className="mt-10 space-y-4">
+            {loading ? (
+              <div className="text-center p-20 text-gray-400 bg-white rounded-3xl border border-dashed border-gray-200">
+                <div className="animate-pulse flex flex-col items-center">
+                   <div className="h-10 w-10 bg-gray-100 rounded-full mb-4"></div>
+                   <span>Loading live emergency alerts...</span>
+                </div>
+              </div>
+            ) : alerts.map((alert) => (
+              <div
+                key={alert._id}
+                className="flex flex-col md:flex-row md:items-center justify-between p-6 border border-white rounded-[2rem] bg-white shadow-sm hover:shadow-md transition-all gap-6 ring-1 ring-gray-100"
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className={`text-[10px] px-3 py-1 rounded-full uppercase font-black tracking-widest ${getStatusBadgeClasses(alert.status)}`}>
+                      {alert.status || "PENDING"}
+                    </span>
+                    <span className="text-xs text-gray-400 font-bold uppercase tracking-tighter">{formatDate(alert.createdAt)}</span>
+                  </div>
+                  <p className="text-gray-900 font-black text-xl">
+                    {alert.user?.name || "Anonymous Patient"}
+                  </p>
+                  <p className="text-gray-500 text-sm mt-1 font-medium">
+                    {alert.ambulance?.name ? `Ambulance ${alert.ambulance.vehicleNumber || ""} is bringing the patient to ${alert.hospital?.name || "Hospital"}.` : "Emergency alert received. Awaiting ambulance assignment."}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAlert(alert)}
+                    className="px-6 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200 transition-all active:scale-95"
+                  >
+                    Details
+                  </button>
+                  {alert.ambulance && alert.status !== "COMPLETED" && (
+                    <button
+                      type="button"
+                      onClick={() => setTrackingAlert(alert)}
+                      className="px-6 py-2.5 rounded-xl bg-blue-50 text-blue-600 font-bold text-sm hover:bg-blue-100 transition-all active:scale-95 flex items-center gap-2"
+                    >
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                      </span>
+                      Live Location
+                    </button>
+                  )}
+                  {alert.status !== "COMPLETED" && (
+                    <button
+                      type="button"
+                      onClick={() => handleStatusUpdate(alert._id, "COMPLETED")}
+                      className="px-6 py-2.5 rounded-xl bg-red-600 text-white font-bold text-sm hover:bg-red-700 transition-all shadow-xl shadow-red-500/20 active:scale-95"
+                    >
+                      Mark Resolved
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {!loading && alerts.length === 0 && (
+              <div className="text-center p-20 text-gray-400 bg-white rounded-3xl border border-dashed border-gray-200">
+                No incoming emergencies right now.
+              </div>
+            )}
+          </div>
         </div>
       </Container>
 
+      {/* Details Modal */}
       {selectedAlert ? (
         <AdminModal title="Alert Details" subtitle="Full emergency alert details from backend" onClose={() => setSelectedAlert(null)}>
           <AdminDetailGrid data={getAlertDetails(selectedAlert)} />
         </AdminModal>
       ) : null}
-    </>
+
+      {/* Tracking Modal */}
+      {trackingAlert ? (
+        <AdminModal 
+          title="Live Tracking Pipeline" 
+          subtitle={`Route tracking for ${trackingAlert.user?.name || "Patient"}`} 
+          onClose={() => setTrackingAlert(null)}
+        >
+          <div className="h-[500px] w-full rounded-2xl overflow-hidden border border-gray-200">
+            <MapContainer 
+              center={[trackingAlert.location?.latitude || 20.5937, trackingAlert.location?.longitude || 78.9629]} 
+              zoom={14} 
+              style={{ height: '100%', width: '100%' }}
+            >
+              <TileLayer
+                url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                attribution='&copy; OpenStreetMap contributors &copy; CARTO'
+              />
+              
+              {/* Patient Starting Point (Pickup) */}
+              {trackingAlert.location && (
+                <Marker position={[trackingAlert.location.latitude, trackingAlert.location.longitude]} icon={patientIcon}>
+                  <Popup>
+                    <div className="p-1">
+                      <p className="font-bold">Starting Point</p>
+                      <p className="text-xs text-gray-500">Patient Pickup Location</p>
+                    </div>
+                  </Popup>
+                </Marker>
+              )}
+
+              {/* Destination Hospital */}
+              {trackingAlert.hospital?.location && (
+                <Marker position={[trackingAlert.hospital.location.latitude, trackingAlert.hospital.location.longitude]} icon={hospitalIcon}>
+                  <Popup>
+                    <div className="p-1">
+                      <p className="font-bold text-emerald-600">{trackingAlert.hospital.name}</p>
+                      <p className="text-xs text-gray-500">Emergency Destination</p>
+                    </div>
+                  </Popup>
+                </Marker>
+              )}
+
+              {/* Ambulance Location (Live) */}
+              {ambulanceLocations[trackingAlert._id] && (
+                <>
+                  <Marker 
+                    position={[ambulanceLocations[trackingAlert._id].lat, ambulanceLocations[trackingAlert._id].lng]} 
+                    icon={ambulanceIcon}
+                  >
+                    <Popup>
+                      <div className="text-center">
+                        <p className="font-bold">Live Ambulance</p>
+                        <p className="text-xs text-red-500 animate-pulse font-bold uppercase tracking-tighter">Updating GPS...</p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                  {/* Trail from start to current */}
+                  <Polyline 
+                    positions={[
+                        [trackingAlert.location.latitude, trackingAlert.location.longitude],
+                        [ambulanceLocations[trackingAlert._id].lat, ambulanceLocations[trackingAlert._id].lng]
+                    ]}
+                    color="#ef4444"
+                    dashArray="10, 10"
+                    weight={3}
+                    opacity={0.6}
+                  />
+                  {/* Trail from current to hospital */}
+                  {trackingAlert.hospital?.location && (
+                    <Polyline 
+                      positions={[
+                          [ambulanceLocations[trackingAlert._id].lat, ambulanceLocations[trackingAlert._id].lng],
+                          [trackingAlert.hospital.location.latitude, trackingAlert.hospital.location.longitude]
+                      ]}
+                      color="#10b981"
+                      dashArray="5, 10"
+                      weight={2}
+                      opacity={0.4}
+                    />
+                  )}
+                </>
+              )}
+            </MapContainer>
+          </div>
+          
+          <div className="mt-6 grid grid-cols-3 gap-4">
+            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Origin</p>
+               <p className="font-black text-gray-800 truncate">Patient Site</p>
+            </div>
+            <div className="p-4 bg-red-50 rounded-2xl border border-red-100">
+               <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest">Current</p>
+               <p className="font-black text-red-800 truncate">{trackingAlert.ambulance?.vehicleNumber || "Fleet"}</p>
+            </div>
+            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+               <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Destination</p>
+               <p className="font-black text-emerald-800 truncate">Hospital ER</p>
+            </div>
+          </div>
+        </AdminModal>
+      ) : null}
+    </div>
   );
 }

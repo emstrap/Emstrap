@@ -202,9 +202,9 @@ export const createUser = async (req, res) => {
         const email = String(req.body?.email || "").trim().toLowerCase();
         const password = String(req.body?.password || "");
         const role = String(req.body?.role || "user").trim().toLowerCase();
-        const mobile = String(req.body?.mobile || "9999999999").trim();
-        const address = String(req.body?.address || "Added by admin").trim();
-        const city = String(req.body?.city || "System").trim();
+        const mobile = String(req.body?.mobile || "").trim();
+        const address = String(req.body?.address || "").trim();
+        const city = String(req.body?.city || "").trim();
         const vehicleNumber = String(req.body?.vehicleNumber || "").trim();
         const isEmailVerified = typeof req.body?.isEmailVerified === "boolean" ? req.body.isEmailVerified : true;
 
