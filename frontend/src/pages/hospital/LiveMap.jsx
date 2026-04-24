@@ -1,10 +1,9 @@
 import { useEffect, useState, useMemo } from "react";
 import { io } from "socket.io-client";
-import { API_URL, getAlerts } from "../../services/api";
+import { API_URL, getAlerts, getOverviewStats } from "../../services/api";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import toast from "react-hot-toast";
-import Navbar from "../../components/layout/Navbar";
 
 const createCustomIcon = (emoji, color = "#ff3b30") => L.divIcon({
     html: `<div class="bg-white rounded-full p-2 text-xl shadow-lg border-2 border-[${color}] flex items-center justify-center">${emoji}</div>`,
@@ -19,6 +18,7 @@ const patientIcon = createCustomIcon("👤", "#3b82f6");
 export default function LiveMap() {
     const [alerts, setAlerts] = useState([]);
     const [ambulanceLocations, setAmbulanceLocations] = useState({});
+    const [liveAmbulancesCount, setLiveAmbulancesCount] = useState(0);
     
     useEffect(() => {
         const fetchInitialState = async () => {
@@ -27,12 +27,29 @@ export default function LiveMap() {
                 if (res.success) {
                     setAlerts(res.alerts.filter(a => a.status === "PENDING" || a.status === "AMBULANCE_ACCEPTED"));
                 }
+                
+                const statsRes = await getOverviewStats();
+                if (statsRes.liveAmbulances !== undefined) {
+                    setLiveAmbulancesCount(statsRes.liveAmbulances);
+                }
             } catch (err) {
-                toast.error("Failed to map live fleet.");
+                toast.error("Failed to fetch map data.");
             }
         };
 
         fetchInitialState();
+
+        // Refresh stats every 5 minutes
+        const interval = setInterval(async () => {
+            try {
+                const statsRes = await getOverviewStats();
+                if (statsRes.liveAmbulances !== undefined) {
+                    setLiveAmbulancesCount(statsRes.liveAmbulances);
+                }
+            } catch (error) {
+                console.error("Failed to update active ambulances count", error);
+            }
+        }, 5 * 60 * 1000);
 
         const socketUrl = API_URL || window.location.origin;
         const socket = io(socketUrl, { withCredentials: true });
@@ -52,7 +69,10 @@ export default function LiveMap() {
             }));
         });
 
-        return () => socket.close();
+        return () => {
+            socket.close();
+            clearInterval(interval);
+        };
     }, []);
 
     const computedCenter = useMemo(() => {
@@ -63,18 +83,14 @@ export default function LiveMap() {
     }, [alerts]);
 
     return (
-        <div className="relative h-full w-full overflow-hidden rounded-[2.5rem] border border-slate-800 shadow-2xl">
-            <div className="absolute top-6 left-6 z-[1000] bg-slate-900/90 backdrop-blur-xl border border-slate-800 p-5 rounded-[2rem] shadow-2xl flex items-center gap-4">
-                <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center animate-pulse">
-                     <span className="text-red-500 text-2xl">📡</span>
-                </div>
-                <div>
-                    <h3 className="text-white font-black tracking-tighter uppercase text-sm">Fleet Surveillance</h3>
-                    <p className="text-slate-500 text-[10px] font-black tracking-[0.2em] uppercase">Real-time GPS Active</p>
-                </div>
+        <div className="relative h-[calc(100vh-8rem)] w-full overflow-hidden rounded-[2.5rem] border border-slate-800 shadow-2xl">
+            <div className="absolute top-6 left-6 z-[900] bg-slate-900/90 backdrop-blur-xl border border-slate-800 p-5 rounded-[2rem] shadow-2xl flex flex-col items-center justify-center min-w-[12rem]">
+                <h3 className="text-white font-black tracking-tighter uppercase text-xs text-center mb-1">Active Ambulances</h3>
+                <p className="text-4xl font-black text-emerald-400">{liveAmbulancesCount}</p>
+                <p className="text-slate-500 text-[10px] font-black tracking-[0.2em] uppercase mt-1">Updates every 5 min</p>
             </div>
 
-            <div className="absolute top-6 right-6 z-[1000] bg-slate-900/90 backdrop-blur-xl border border-slate-800 p-4 rounded-2xl shadow-2xl flex flex-col gap-2">
+            <div className="absolute top-6 right-6 z-[900] bg-slate-900/90 backdrop-blur-xl border border-slate-800 p-4 rounded-2xl shadow-2xl flex flex-col gap-2">
                 <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
                     <span className="w-3 h-3 bg-red-500 rounded-full"></span>
                     <span>Inbound Ambulance</span>
@@ -92,8 +108,8 @@ export default function LiveMap() {
                 zoomControl={false}
             >
                 <TileLayer
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                    attribution='&copy; OpenStreetMap &copy; CartoDB'
+                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> CartoDB'
                 />
 
                 {alerts.map(alert => {

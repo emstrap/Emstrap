@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
-import Navbar from "../../components/layout/Navbar";
 import Container from "../../components/layout/Container";
 import { API_URL, getAlerts, getErrorMessage, getStats, updateHospitalAlertStatus } from "../../services/api";
 import AdminDetailGrid from "../../components/admin/AdminDetailGrid";
@@ -112,8 +111,7 @@ export default function HospitalDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 dark:bg-[#0d1326] transition-colors">
-      <Navbar />
+    <div className="w-full">
       <Container>
         <div className="py-10">
           <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Hospital ER Dashboard</h1>

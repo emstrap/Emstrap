@@ -19,7 +19,7 @@ export default function DashboardRouter() {
             return <AmbulanceDashboard />;
         case "hospital":
         case "hospital_admin":
-            return <HospitalDashboard />;
+            return <Navigate to="/hospital" replace />;
         case "police":
         case "police_hq":
             return <Navigate to="/police" replace />;

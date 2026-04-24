@@ -7,7 +7,7 @@ export default function HospitalLayout() {
             <Navbar />
             
             <main className="transition-all duration-300 min-h-screen" style={{ paddingLeft: 'var(--sidebar-width)', paddingTop: '4rem' }}>
-                <div className="p-6 md:p-8 h-[calc(100vh-4rem)] mx-auto overflow-y-auto w-full">
+                <div className="p-6 md:p-8 min-h-[calc(100vh-4rem)] mx-auto w-full flex flex-col">
                     <Outlet />
                 </div>
             </main>

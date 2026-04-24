@@ -22,8 +22,10 @@ export default function Navbar() {
 
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
   
-  // Sidebar logic for dashboard roles (Police)
+  // Sidebar logic for dashboard roles
   const isPoliceContext = user?.role === 'police' || user?.role === 'police_hq';
+  const isHospitalContext = user?.role === 'hospital' || user?.role === 'hospital_admin';
+  const hasSidebar = isPoliceContext || isHospitalContext;
   const [sidebarExpanded, setSidebarExpanded] = useState(true);
 
   // Sync theme
@@ -39,12 +41,12 @@ export default function Navbar() {
 
   // Sync sidebar dimension variable for parent layouts
   useEffect(() => {
-      if (isPoliceContext) {
+      if (hasSidebar) {
           document.documentElement.style.setProperty('--sidebar-width', sidebarExpanded ? '16rem' : '5rem');
       } else {
           document.documentElement.style.removeProperty('--sidebar-width');
       }
-  }, [sidebarExpanded, isPoliceContext]);
+  }, [sidebarExpanded, hasSidebar]);
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
@@ -67,16 +69,25 @@ export default function Navbar() {
     }
   };
 
-  if (isPoliceContext) {
-      const menuItems = [
-          { name: "Dashboard", path: "/police", icon: icons.dashboard },
-          { name: "Live Map", path: "/police/map", icon: icons.map },
-          { name: "Settings", path: "/police/settings", icon: icons.settings },
-      ];
+  if (hasSidebar) {
+      let menuItems = [];
+      if (isPoliceContext) {
+          menuItems = [
+              { name: "Dashboard", path: "/police", icon: icons.dashboard },
+              { name: "Live Map", path: "/police/map", icon: icons.map },
+              { name: "Settings", path: "/police/settings", icon: icons.settings },
+          ];
+      } else if (isHospitalContext) {
+          menuItems = [
+              { name: "Dashboard", path: "/hospital", icon: icons.dashboard },
+              { name: "Live Map", path: "/hospital/map", icon: icons.map },
+              { name: "Settings", path: "/hospital/settings", icon: icons.settings },
+          ];
+      }
 
       return (
           <>
-              {/* POLICE SIDEBAR (Full Height) */}
+              {/* DASHBOARD SIDEBAR (Full Height) */}
               <div className={`fixed top-0 left-0 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 z-50 flex flex-col overflow-x-hidden ${sidebarExpanded ? 'w-64' : 'w-20'}`}>
                   
                   {/* Top Sidebar Header - Toggle Button */}
@@ -96,7 +107,11 @@ export default function Navbar() {
                   <div className="flex-1 overflow-y-auto w-full">
                       <nav className="px-3 py-6 space-y-2">
                           {menuItems.map((item) => {
-                              const isActive = location.pathname === item.path || (item.path !== '/police' && location.pathname.startsWith(item.path));
+                              // Ensure that exact match for parent path /police or /hospital so that /police doesn't highlight when /police/map is active
+                              const isBaseRoute = item.path === '/police' || item.path === '/hospital';
+                              const isActive = isBaseRoute 
+                                  ? location.pathname === item.path 
+                                  : location.pathname.startsWith(item.path);
                               return (
                                   <Link 
                                       key={item.name} 
@@ -129,7 +144,7 @@ export default function Navbar() {
                   </div>
               </div>
 
-              {/* POLICE TOP HEADER (Contracted via width calculated variable) */}
+              {/* SIDEBAR TOP HEADER (Contracted via width calculated variable) */}
               <nav className="fixed top-0 right-0 h-16 bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-800 z-[1000] flex items-center justify-between px-6 transition-all duration-300" style={{ width: `calc(100% - var(--sidebar-width))` }}>
                   
                   {/* Left Side: Logo */}

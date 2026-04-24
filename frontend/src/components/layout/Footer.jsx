@@ -8,13 +8,17 @@ export default function Footer() {
   const location = useLocation();
 
   const isPoliceContext = user?.role === 'police' || user?.role === 'police_hq';
+  const isHospitalContext = user?.role === 'hospital' || user?.role === 'hospital_admin';
+  const hasSidebar = isPoliceContext || isHospitalContext;
 
   if (location.pathname.startsWith('/police') || isPoliceContext) {
       return null;
   }
 
+  const sidebarStyle = hasSidebar ? { paddingLeft: 'var(--sidebar-width)' } : {};
+
   return (
-    <footer className="bg-slate-900 text-white mt-16">
+    <footer className="bg-slate-900 text-white mt-16 transition-all duration-300" style={sidebarStyle}>
       <div className="max-w-6xl mx-auto px-4 py-10">
 
         <div className="grid md:grid-cols-3 gap-8">

@@ -22,6 +22,11 @@ const AdminBookings = lazy(() => import("../pages/admin/AdminBookings"));
 const Hospital = lazy(() => import("../pages/admin/Hospital"));
 const AdminAmbulance = lazy(() => import("../pages/admin/AdminAmbulance"));
 
+const HospitalLayout = lazy(() => import("../pages/hospital/HospitalLayout"));
+const HospitalDashboard = lazy(() => import("../pages/hospital/HospitalDashboard"));
+const HospitalMap = lazy(() => import("../pages/hospital/LiveMap"));
+const HospitalSettings = lazy(() => import("../pages/hospital/HospitalSettings"));
+
 const PoliceLayout = lazy(() => import("../pages/Police/PoliceLayout"));
 const PoliceDashboard = lazy(() => import("../pages/Police/PoliceDashboard"));
 const LiveMap = lazy(() => import("../pages/Police/LiveMap"));
@@ -112,6 +117,13 @@ export default function AppRoutes() {
             <AdminAmbulance />
           </ProtectedRoute>
         } />
+
+        {/* Hospital Protected Hierarchy */}
+        <Route path="/hospital" element={<ProtectedRoute role="hospital"><HospitalLayout /></ProtectedRoute>}>
+          <Route index element={<HospitalDashboard />} />
+          <Route path="map" element={<HospitalMap />} />
+          <Route path="settings" element={<HospitalSettings />} />
+        </Route>
 
         {/* Police Protected Hierarchy */}
         <Route path="/police" element={<ProtectedRoute role="police"><PoliceLayout /></ProtectedRoute>}>
