@@ -9,7 +9,8 @@ const icons = {
   map: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>,
   bell: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>,
   logout: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>,
-  hamburger: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+  hamburger: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>,
+  settings: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
 }
 
 export default function Navbar() {
@@ -70,6 +71,7 @@ export default function Navbar() {
       const menuItems = [
           { name: "Dashboard", path: "/police", icon: icons.dashboard },
           { name: "Live Map", path: "/police/map", icon: icons.map },
+          { name: "Settings", path: "/police/settings", icon: icons.settings },
       ];
 
       return (
@@ -128,7 +130,7 @@ export default function Navbar() {
               </div>
 
               {/* POLICE TOP HEADER (Contracted via width calculated variable) */}
-              <nav className="fixed top-0 right-0 h-16 bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-800 z-40 flex items-center justify-between px-6 transition-all duration-300" style={{ width: `calc(100% - var(--sidebar-width))` }}>
+              <nav className="fixed top-0 right-0 h-16 bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-800 z-[1000] flex items-center justify-between px-6 transition-all duration-300" style={{ width: `calc(100% - var(--sidebar-width))` }}>
                   
                   {/* Left Side: Logo */}
                   <div className="flex items-center">
@@ -158,7 +160,7 @@ export default function Navbar() {
                           </button>
 
                           {dropdownOpen && (
-                            <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 dark:border dark:border-gray-700 rounded-xl shadow-lg py-1 z-50">
+                            <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 dark:border dark:border-gray-700 rounded-xl shadow-lg py-1 z-[1000]">
                               <div className="px-4 py-2 border-b dark:border-gray-700">
                                 <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{user?.name}</p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>
@@ -188,7 +190,7 @@ export default function Navbar() {
 
   // STANDARD NAVBAR RENDERING FOR USERS/AMBULANCE
   return (
-    <nav className="bg-white dark:bg-gray-900 shadow-md transition-colors relative z-40">
+    <nav className="bg-white dark:bg-gray-900 shadow-md transition-colors relative z-[1000]">
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex justify-between h-16 items-center">
           <Link to="/">
@@ -235,7 +237,7 @@ export default function Navbar() {
                 </button>
 
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 dark:border dark:border-gray-700 rounded-xl shadow-lg py-1 z-50">
+                  <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 dark:border dark:border-gray-700 rounded-xl shadow-lg py-1 z-[1000]">
                     <div className="px-4 py-2 border-b dark:border-gray-700">
                       <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{user?.name}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</p>

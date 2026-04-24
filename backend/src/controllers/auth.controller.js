@@ -360,6 +360,33 @@ export const updateUser = async (req, res) => {
   }
 };
 
+// CHANGE PASSWORD (Logged in user)
+export const changePassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  try {
+    const user = await User.findById(req.user._id);
+    
+    // Verify current password using the utility that handles legacy hashing
+    const isMatch = await verifyPasswordAndUpgradeIfNeeded(user, currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Incorrect current password." });
+    }
+    
+    // Validate new password
+    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!strongPasswordRegex.test(newPassword)) {
+      return res.status(400).json({ message: "Password must be at least 8 characters long, including an uppercase letter, lowercase letter, number, and special character." });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+    
+    res.status(200).json({ message: "Password changed successfully." });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // FORGOT PASSWORD
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;

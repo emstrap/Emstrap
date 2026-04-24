@@ -25,6 +25,7 @@ const AdminAmbulance = lazy(() => import("../pages/admin/AdminAmbulance"));
 const PoliceLayout = lazy(() => import("../pages/Police/PoliceLayout"));
 const PoliceDashboard = lazy(() => import("../pages/Police/PoliceDashboard"));
 const LiveMap = lazy(() => import("../pages/Police/LiveMap"));
+const PoliceSettings = lazy(() => import("../pages/Police/PoliceSettings"));
 
 
 export default function AppRoutes() {
@@ -116,6 +117,7 @@ export default function AppRoutes() {
         <Route path="/police" element={<ProtectedRoute role="police"><PoliceLayout /></ProtectedRoute>}>
           <Route index element={<PoliceDashboard />} />
           <Route path="map" element={<LiveMap />} />
+          <Route path="settings" element={<PoliceSettings />} />
         </Route>
       </Routes>
     </Suspense>

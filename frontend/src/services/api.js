@@ -68,6 +68,11 @@ export const resetPasswordAPI = async (token, password) => {
   return res.data;
 };
 
+export const changePasswordAPI = async (currentPassword, newPassword) => {
+  const res = await API.put("/auth/change-password", { currentPassword, newPassword });
+  return res.data;
+};
+
 // EMERGENCY APIs
 export const getDriverHistory = async (filter = "24h") => {
   const res = await API.get(`/api/emergency/driver/history?filter=${filter}`);

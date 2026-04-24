@@ -119,7 +119,7 @@ export default function PoliceDashboard() {
 
   return (
     <div className="mx-auto flex h-full w-full max-w-6xl flex-col items-start gap-6 p-4">
-      {/* Header */}<p className="text-sm font-medium uppercase tracking-[0.3em] text-sky-300">
+      {/* Header */}<p className="text-sm font-medium uppercase tracking-[0.3em] text-sky-600 dark:text-sky-300">
         Police Dashboard
       </p>
 
@@ -127,10 +127,10 @@ export default function PoliceDashboard() {
       {/* Stats Cards */}
       <div className="grid w-full grid-cols-2 gap-4 md:grid-cols-4">
         {[
-          ["Total Cases", stats.total, "bg-slate-800 border-slate-700 text-white"],
-          ["Pending", stats.pending, "bg-yellow-950/40 border-yellow-800/50 text-yellow-300"],
-          ["In Progress", stats.inProgress, "bg-blue-950/40 border-blue-800/50 text-blue-300"],
-          ["Resolved", stats.resolved, "bg-emerald-950/40 border-emerald-800/50 text-emerald-300"],
+          ["Total Cases", stats.total, "bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white"],
+          ["Pending", stats.pending, "bg-yellow-50 dark:bg-yellow-950/40 border-yellow-200 dark:border-yellow-800/50 text-yellow-700 dark:text-yellow-300"],
+          ["In Progress", stats.inProgress, "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/50 text-blue-700 dark:text-blue-300"],
+          ["Resolved", stats.resolved, "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50 text-emerald-700 dark:text-emerald-300"],
         ].map(([label, value, classes]) => (
           <div
             key={label}
@@ -143,9 +143,9 @@ export default function PoliceDashboard() {
       </div>
 
       {/* Cases Section */}
-      <div className="w-full rounded-3xl border border-slate-800 bg-slate-950/70 p-6 shadow-xl shadow-black/20">
+      <div className="w-full rounded-3xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-950/70 p-6 shadow-xl shadow-gray-200 dark:shadow-black/20">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-xl font-bold text-white">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
             📋 Emergency Cases
           </h2>
           {/* Filter Tabs */}
@@ -156,8 +156,8 @@ export default function PoliceDashboard() {
                   key={filter}
                   onClick={() => setStatusFilter(filter)}
                   className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${statusFilter === filter
-                    ? "bg-sky-400 text-slate-950"
-                    : "border border-slate-700 text-slate-300 hover:border-slate-500 hover:text-white"
+                    ? "bg-sky-500 text-white dark:bg-sky-400 dark:text-slate-950"
+                    : "border border-gray-300 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:border-gray-500 dark:hover:border-slate-500 hover:text-gray-900 dark:hover:text-white"
                     }`}
                 >
                   {filter === "ALL"
@@ -172,17 +172,17 @@ export default function PoliceDashboard() {
         </div>
 
         {error && (
-          <div className="mb-4 rounded-xl border border-red-800/50 bg-red-900/20 p-4 text-red-300">
+          <div className="mb-4 rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 p-4 text-red-700 dark:text-red-300">
             {error}
           </div>
         )}
 
         {loading ? (
-          <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-10 text-center text-slate-500">
+          <div className="rounded-xl border border-dashed border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/40 p-10 text-center text-gray-500 dark:text-slate-500">
             Loading cases...
           </div>
         ) : filteredCases.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-10 text-center text-slate-500">
+          <div className="rounded-xl border border-dashed border-gray-300 dark:border-slate-700 bg-gray-50 dark:bg-slate-900/40 p-10 text-center text-gray-500 dark:text-slate-500">
             No cases found{statusFilter !== "ALL" ? ` with status "${STATUS_LABELS[statusFilter] || statusFilter}"` : ""}.
           </div>
         ) : (
@@ -190,7 +190,7 @@ export default function PoliceDashboard() {
             {filteredCases.map((c) => (
               <div
                 key={c._id}
-                className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 transition hover:border-slate-600 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 rounded-2xl border border-gray-200 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/60 p-4 transition hover:border-gray-300 dark:hover:border-slate-600 sm:flex-row sm:items-center sm:justify-between"
               >
                 {/* Left: Case Info */}
                 <div className="flex-1">
@@ -205,7 +205,7 @@ export default function PoliceDashboard() {
                       {formatDate(c.createdAt)}
                     </span>
                   </div>
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
                     Anonymous Emergency
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
@@ -220,7 +220,7 @@ export default function PoliceDashboard() {
                 <div className="flex shrink-0 gap-2">
                   <button
                     onClick={() => setSelectedCase(c)}
-                    className="rounded-xl border border-sky-500/50 bg-sky-500/10 px-4 py-2 text-xs font-semibold text-sky-300 transition hover:bg-sky-500/20"
+                    className="rounded-xl border border-sky-500/50 bg-sky-50 dark:bg-sky-500/10 px-4 py-2 text-xs font-semibold text-sky-600 dark:text-sky-300 transition hover:bg-sky-100 dark:hover:bg-sky-500/20"
                   >
                     Details
                   </button>
@@ -233,7 +233,7 @@ export default function PoliceDashboard() {
                     </button>
                   )}
                   {c.status === "COMPLETED" && (
-                    <span className="rounded-xl bg-emerald-900/30 px-4 py-2 text-xs font-semibold text-emerald-400">
+                    <span className="rounded-xl bg-emerald-100 dark:bg-emerald-900/30 px-4 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                       ✓ Resolved
                     </span>
                   )}

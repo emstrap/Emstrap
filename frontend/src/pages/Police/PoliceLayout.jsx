@@ -3,7 +3,7 @@ import Navbar from "../../components/layout/Navbar";
 
 export default function PoliceLayout() {
     return (
-        <div className="bg-[#0d1326] text-white min-h-screen font-sans selection:bg-[#3390ff] selection:text-white">
+        <div className="bg-gray-50 dark:bg-[#0d1326] text-gray-900 dark:text-white min-h-screen font-sans selection:bg-[#3390ff] selection:text-white">
             <Navbar />
             
             {/* 
