@@ -74,22 +74,22 @@ export default function Emergency() {
   const startEmergency = () => {
     // try GPS first
     if (navigator.geolocation) {
-       navigator.geolocation.getCurrentPosition(
-         (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-         (err) => {
-            // IP Fallback
-            fetch("https://ipapi.co/json/")
-              .then(res => res.json())
-              .then(data => setLocation({ lat: data.latitude, lng: data.longitude }))
-              .catch(() => console.error("Location fallback failed"));
-         },
-         { enableHighAccuracy: true, timeout: 5000 }
-       );
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (err) => {
+          // IP Fallback
+          fetch("https://ipapi.co/json/")
+            .then(res => res.json())
+            .then(data => setLocation({ lat: data.latitude, lng: data.longitude }))
+            .catch(() => console.error("Location fallback failed"));
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
     } else {
-       fetch("https://ipapi.co/json/")
-         .then(res => res.json())
-         .then(data => setLocation({ lat: data.latitude, lng: data.longitude }))
-         .catch(() => console.error("Location fallback failed"));
+      fetch("https://ipapi.co/json/")
+        .then(res => res.json())
+        .then(data => setLocation({ lat: data.latitude, lng: data.longitude }))
+        .catch(() => console.error("Location fallback failed"));
     }
 
     setStep("capture");
@@ -102,9 +102,9 @@ export default function Emergency() {
 
     try {
       if (!location) {
-         toast.error("Failed to acquire live location. Please allow GPS.");
-         setStep("start");
-         return;
+        toast.error("Failed to acquire live location. Please allow GPS.");
+        setStep("start");
+        return;
       }
 
       // Create request on backend using API service
@@ -275,7 +275,7 @@ export default function Emergency() {
 
         {/* STEP 1 — BIG BUTTON */}
         {step === "start" && (
-          <div className="text-center mt-16 sm:mt-24">
+          <div className="flex flex-col items-center justify-center text-center h-[80vh]">
             <h1 className="text-3xl sm:text-5xl font-bold">
               Emergency Ambulance
             </h1>

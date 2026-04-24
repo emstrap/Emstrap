@@ -94,6 +94,16 @@ export const cancelEmergency = async (id) => {
   return res.data;
 };
 
+export const getHospitals = async () => {
+  const res = await API.get("/api/hospitals");
+  return res.data;
+};
+
+export const assignHospital = async (emergencyId, hospitalId) => {
+  const res = await API.put(`/api/emergency/${emergencyId}/assign-hospital`, { hospitalId });
+  return res.data;
+};
+
 // ADMIN APIs
 export const getAllUsers = async () => {
   const res = await API.get("/api/admin/users");

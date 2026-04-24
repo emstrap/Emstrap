@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { io } from "socket.io-client";
 import { useAuth } from "../../context/AuthContext";
@@ -11,6 +11,8 @@ import {
 import AdminDetailGrid from "../../components/admin/AdminDetailGrid";
 import AdminModal from "../../components/admin/AdminModal";
 import { formatDate, getStatusBadgeClasses } from "../../components/admin/admin.utils";
+import toast from "react-hot-toast";
+import EmergencyPopup from "../../components/notifications/EmergencyPopup";
 
 const STATUS_LABELS = {
   PENDING: "Pending",
@@ -33,6 +35,11 @@ export default function PoliceDashboard() {
   const [error, setError] = useState("");
   const [selectedCase, setSelectedCase] = useState(null);
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [popupNotifications, setPopupNotifications] = useState([]);
+
+  const dismissPopup = useCallback((id) => {
+    setPopupNotifications((prev) => prev.filter((n) => n.id !== id));
+  }, []);
 
   // Fetch cases on mount + connect socket for live updates
   useEffect(() => {
@@ -59,9 +66,20 @@ export default function PoliceDashboard() {
     socket.on("police_new_case", (data) => {
       setCases((prev) => {
         // Avoid duplicates
-        if (prev.some((c) => c._id === data.request._id)) return prev;
+        if (prev.some((c) => c._id === data.request._id)) {
+          // Update if hospital was selected
+          if (data.hospitalSelected) {
+            return prev.map((c) => c._id === data.request._id ? { ...c, ...data.request } : c);
+          }
+          return prev;
+        }
         return [data.request, ...prev];
       });
+      // Show rich in-app popup
+      setPopupNotifications((prev) => [
+        ...prev,
+        { id: `${data.request._id}-${Date.now()}`, type: "police", request: data.request, hospitalSelected: data.hospitalSelected }
+      ]);
     });
 
     // When ambulance accepts, update the case status in real-time
@@ -118,6 +136,7 @@ export default function PoliceDashboard() {
   });
 
   return (
+    <>
     <div className="mx-auto flex h-full w-full max-w-6xl flex-col items-start gap-6 p-4">
       {/* Header */}<p className="text-sm font-medium uppercase tracking-[0.3em] text-sky-600 dark:text-sky-300">
         Police Dashboard
@@ -255,5 +274,9 @@ export default function PoliceDashboard() {
         </AdminModal>
       )}
     </div>
+
+    {/* Emergency Popup Notifications */}
+    <EmergencyPopup notifications={popupNotifications} onDismiss={dismissPopup} />
+    </>
   );
 }

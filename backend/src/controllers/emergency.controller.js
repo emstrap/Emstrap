@@ -3,6 +3,58 @@ import Hospital from "../models/hospital.model.js";
 import { getIO } from "../sockets/socket.js";
 import cloudinary from "../config/cloudinary.js";
 
+export const assignHospital = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { hospitalId } = req.body;
+
+    if (!hospitalId) {
+      return res.status(400).json({ success: false, message: "hospitalId is required" });
+    }
+
+    const hospital = await Hospital.findById(hospitalId);
+    if (!hospital) {
+      return res.status(404).json({ success: false, message: "Hospital not found" });
+    }
+
+    const existing = await emergencyRequestSchema.findById(id);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: "Emergency request not found" });
+    }
+    if (existing.ambulance?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "Only the assigned driver can select a hospital" });
+    }
+
+    const updated = await emergencyRequestSchema.findByIdAndUpdate(
+      id,
+      { hospital: hospitalId, status: "AMBULANCE_ACCEPTED" },
+      { new: true }
+    )
+      .populate("user", "name mobile email address city")
+      .populate("ambulance", "name email mobile vehicleNumber driverName contact")
+      .populate("hospital", "name location contact email");
+
+    const io = getIO();
+
+    // Notify the specific hospital room and all police
+    io.to("hospital").emit("hospital_alert", { request: updated, hospitalSelected: true });
+    io.to("police").emit("police_new_case", { request: updated, hospitalSelected: true });
+    io.to("police").emit("police_alert", { request: updated });
+
+    // Also update the user tracking the request
+    io.to(`request_${id}`).emit("ambulance_assigned", {
+      driverName: req.user.name || "Driver",
+      vehicleNumber: req.user.vehicleNumber || "",
+      hospitalName: updated.hospital?.name || "Assigning...",
+      hospitalLocation: updated.hospital?.location || "N/A",
+    });
+
+    res.status(200).json({ success: true, data: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const createEmergencyRequest = async (req, res) => {
   try {
     const { latitude, longitude, imageUrl } = req.body;
@@ -28,9 +80,11 @@ export const createEmergencyRequest = async (req, res) => {
       .findById(request._id)
       .populate("user", "name mobile email address city");
 
-    // 3️⃣ Emit to all ambulances
+    // 3️⃣ Emit to all ambulances, hospitals, and police
     const io = getIO();
     io.to("ambulance").emit("new_emergency_request", populatedRequest);
+    io.to("hospital").emit("hospital_alert", { request: populatedRequest });
+    io.to("police").emit("police_new_case", { request: populatedRequest });
 
     res.status(201).json({
       success: true,
