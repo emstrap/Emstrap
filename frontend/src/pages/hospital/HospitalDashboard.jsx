@@ -112,15 +112,15 @@ export default function HospitalDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
+    <div className="min-h-screen bg-gray-50/50 dark:bg-[#0d1326] transition-colors">
       <Navbar />
       <Container>
         <div className="py-10">
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Hospital ER Dashboard</h1>
-          <p className="text-gray-500 mt-1 font-medium italic">Monitoring incoming ambulance arrivals with live backend data.</p>
+          <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Hospital ER Dashboard</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1 font-medium italic">Monitoring incoming ambulance arrivals with live backend data.</p>
 
           {error ? (
-            <div className="mt-6 rounded-2xl border border-red-100 bg-red-50/50 p-4 text-red-700 font-medium">
+            <div className="mt-6 rounded-2xl border border-red-100 dark:border-red-900/50 bg-red-50/50 dark:bg-red-900/20 p-4 text-red-700 dark:text-red-400 font-medium">
               {error}
             </div>
           ) : null}
@@ -132,25 +132,25 @@ export default function HospitalDashboard() {
               ["Hospitals", stats.totalHospitals],
               ["Bookings", stats.totalBookings],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-3xl border border-white bg-white p-6 shadow-sm ring-1 ring-gray-100">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{label}</p>
-                <p className="mt-2 text-4xl font-black text-gray-900">{value || 0}</p>
+              <div key={label} className="rounded-3xl border border-white dark:border-gray-800 bg-white dark:bg-gray-800 p-6 shadow-sm ring-1 ring-gray-100 dark:ring-gray-700">
+                <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{label}</p>
+                <p className="mt-2 text-4xl font-black text-gray-900 dark:text-white">{value || 0}</p>
               </div>
             ))}
           </div>
 
           <div className="mt-10 space-y-4">
             {loading ? (
-              <div className="text-center p-20 text-gray-400 bg-white rounded-3xl border border-dashed border-gray-200">
+              <div className="text-center p-20 text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700">
                 <div className="animate-pulse flex flex-col items-center">
-                   <div className="h-10 w-10 bg-gray-100 rounded-full mb-4"></div>
+                   <div className="h-10 w-10 bg-gray-100 dark:bg-gray-700 rounded-full mb-4"></div>
                    <span>Loading live emergency alerts...</span>
                 </div>
               </div>
             ) : alerts.map((alert) => (
               <div
                 key={alert._id}
-                className="flex flex-col md:flex-row md:items-center justify-between p-6 border border-white rounded-[2rem] bg-white shadow-sm hover:shadow-md transition-all gap-6 ring-1 ring-gray-100"
+                className="flex flex-col md:flex-row md:items-center justify-between p-6 border border-white dark:border-gray-800 rounded-[2rem] bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-all gap-6 ring-1 ring-gray-100 dark:ring-gray-700"
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
@@ -159,10 +159,10 @@ export default function HospitalDashboard() {
                     </span>
                     <span className="text-xs text-gray-400 font-bold uppercase tracking-tighter">{formatDate(alert.createdAt)}</span>
                   </div>
-                  <p className="text-gray-900 font-black text-xl">
+                  <p className="text-gray-900 dark:text-white font-black text-xl">
                     {alert.user?.name || "Anonymous Patient"}
                   </p>
-                  <p className="text-gray-500 text-sm mt-1 font-medium">
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 font-medium">
                     {alert.ambulance?.name ? `Ambulance ${alert.ambulance.vehicleNumber || ""} is bringing the patient to ${alert.hospital?.name || "Hospital"}.` : "Emergency alert received. Awaiting ambulance assignment."}
                   </p>
                 </div>
@@ -171,7 +171,7 @@ export default function HospitalDashboard() {
                   <button
                     type="button"
                     onClick={() => setSelectedAlert(alert)}
-                    className="px-6 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200 transition-all active:scale-95"
+                    className="px-6 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-sm hover:bg-slate-200 dark:hover:bg-slate-600 transition-all active:scale-95"
                   >
                     Details
                   </button>
@@ -179,7 +179,7 @@ export default function HospitalDashboard() {
                     <button
                       type="button"
                       onClick={() => setTrackingAlert(alert)}
-                      className="px-6 py-2.5 rounded-xl bg-blue-50 text-blue-600 font-bold text-sm hover:bg-blue-100 transition-all active:scale-95 flex items-center gap-2"
+                      className="px-6 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold text-sm hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all active:scale-95 flex items-center gap-2"
                     >
                       <span className="relative flex h-2 w-2">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
@@ -202,7 +202,7 @@ export default function HospitalDashboard() {
             ))}
 
             {!loading && alerts.length === 0 && (
-              <div className="text-center p-20 text-gray-400 bg-white rounded-3xl border border-dashed border-gray-200">
+              <div className="text-center p-20 text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700">
                 No incoming emergencies right now.
               </div>
             )}
@@ -303,17 +303,17 @@ export default function HospitalDashboard() {
           </div>
           
           <div className="mt-6 grid grid-cols-3 gap-4">
-            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Origin</p>
-               <p className="font-black text-gray-800 truncate">Patient Site</p>
+            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+               <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Origin</p>
+               <p className="font-black text-gray-800 dark:text-gray-200 truncate">Patient Site</p>
             </div>
-            <div className="p-4 bg-red-50 rounded-2xl border border-red-100">
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-100 dark:border-red-900/30">
                <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest">Current</p>
-               <p className="font-black text-red-800 truncate">{trackingAlert.ambulance?.vehicleNumber || "Fleet"}</p>
+               <p className="font-black text-red-800 dark:text-red-300 truncate">{trackingAlert.ambulance?.vehicleNumber || "Fleet"}</p>
             </div>
-            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+            <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl border border-emerald-100 dark:border-emerald-900/30">
                <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Destination</p>
-               <p className="font-black text-emerald-800 truncate">Hospital ER</p>
+               <p className="font-black text-emerald-800 dark:text-emerald-300 truncate">Hospital ER</p>
             </div>
           </div>
         </AdminModal>
