@@ -80,7 +80,7 @@ const CameraCaptureComponent = ({ onSend, onCancel }, ref) => {
     setImage(data);
     setPhoto(data);
     stopCamera();
-    onSend(); // Trigger the actual emergency send
+    onSend(data); // Trigger the actual emergency send with the data
   };
 
   const retakePhoto = () => {
@@ -149,7 +149,7 @@ const CameraCaptureComponent = ({ onSend, onCancel }, ref) => {
             <button
               onClick={() => {
                 stopCamera();
-                onSend();
+                onSend(image);
               }}
               className="w-1/2 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-xl transition-colors"
             >

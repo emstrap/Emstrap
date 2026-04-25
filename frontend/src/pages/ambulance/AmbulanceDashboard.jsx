@@ -329,6 +329,16 @@ export default function AmbulanceDashboard() {
                   <span className="text-xl">📍</span>
                   <span className="truncate">[{req.location?.latitude?.toFixed(4)}, {req.location?.longitude?.toFixed(4)}]</span>
                 </div>
+
+                {req.imageUrl && (
+                  <div className="mb-4">
+                    <img
+                      src={req.imageUrl}
+                      alt="Patient"
+                      className="w-full h-48 object-cover rounded-xl shadow-inner border border-gray-100 dark:border-gray-700"
+                    />
+                  </div>
+                )}
                 
                 <div className="flex gap-3">
                   <button

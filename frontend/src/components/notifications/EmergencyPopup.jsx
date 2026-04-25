@@ -114,6 +114,13 @@ function NotificationCard({ notification, onDismiss }) {
           </div>
         )}
 
+        {/* Patient Photo */}
+        {req.imageUrl && (
+          <div className="mt-2 rounded-xl overflow-hidden border border-gray-100 dark:border-gray-800 h-32">
+            <img src={req.imageUrl} alt="Patient" className="w-full h-full object-cover" />
+          </div>
+        )}
+
         {/* Ambulance (if assigned) */}
         {ambulance.name && (
           <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">

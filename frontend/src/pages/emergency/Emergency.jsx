@@ -95,7 +95,7 @@ export default function Emergency() {
     setStep("capture");
   };
 
-  const handleSendEmergency = async () => {
+  const handleSendEmergency = async (photoData) => {
     //stop camera NOW
     cameraRef.current?.stopCamera();
     setStep("searching");
@@ -111,7 +111,7 @@ export default function Emergency() {
       const response = await API.post("/api/emergency", {
         latitude: location.lat,
         longitude: location.lng,
-        imageUrl: photo || ""
+        imageUrl: photoData || photo || ""
       });
 
       const requestId = response.data.data._id;

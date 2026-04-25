@@ -58,13 +58,19 @@ export const assignHospital = async (req, res) => {
 export const createEmergencyRequest = async (req, res) => {
   try {
     const { latitude, longitude, imageUrl } = req.body;
+    console.log("Creating emergency request. imageUrl present:", !!imageUrl);
 
     let secureImageUrl = "";
     if (imageUrl) {
-      const uploadResponse = await cloudinary.uploader.upload(imageUrl, {
-        folder: "emergencies",
-      });
-      secureImageUrl = uploadResponse.secure_url;
+      try {
+        const uploadResponse = await cloudinary.uploader.upload(imageUrl, {
+          folder: "emergencies",
+        });
+        secureImageUrl = uploadResponse.secure_url;
+        console.log("Cloudinary upload successful:", secureImageUrl);
+      } catch (uploadError) {
+        console.error("Cloudinary upload failed:", uploadError);
+      }
     }
 
     // 1️⃣ Create request
