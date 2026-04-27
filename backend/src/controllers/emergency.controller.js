@@ -2,6 +2,7 @@ import emergencyRequestSchema from "../models/emergencyrequest.model.js";
 import Hospital from "../models/hospital.model.js";
 import { getIO } from "../sockets/socket.js";
 import cloudinary from "../config/cloudinary.js";
+import Booking from "../models/booking.model.js";
 
 export const assignHospital = async (req, res) => {
   try {
@@ -23,6 +24,10 @@ export const assignHospital = async (req, res) => {
     }
     if (existing.ambulance?.toString() !== req.user._id.toString()) {
       return res.status(403).json({ success: false, message: "Only the assigned driver can select a hospital" });
+    }
+
+    if (existing.requestType !== "EMERGENCY") {
+      return res.status(400).json({ success: false, message: "Hospital assignment is only allowed for emergency requests" });
     }
 
     const updated = await emergencyRequestSchema.findByIdAndUpdate(
@@ -118,9 +123,25 @@ export const acceptEmergency = async (req, res) => {
       return res.status(400).json({ success: false, message: "Emergency is already handled by another driver" });
     }
 
-    // Find nearest hospital (Picking first one as placeholder for nearest logic)
-    const nearestHospital = await Hospital.findOne();
-    const hospitalId = nearestHospital ? nearestHospital._id : null;
+    // Security layer: Check if driver already has an active assigned emergency
+    const activeDriverEmergency = await emergencyRequestSchema.findOne({
+      ambulance: req.user._id,
+      status: "AMBULANCE_ACCEPTED"
+    });
+    
+    if (activeDriverEmergency) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "You are already handling an active emergency. Please complete or cancel it before accepting a new one." 
+      });
+    }
+
+    // Find nearest hospital only for EMERGENCY type
+    let hospitalId = null;
+    if (existingRequest.requestType === "EMERGENCY") {
+      const nearestHospital = await Hospital.findOne();
+      hospitalId = nearestHospital ? nearestHospital._id : null;
+    }
 
     const request = await emergencyRequestSchema.findByIdAndUpdate(
       id,
@@ -134,6 +155,14 @@ export const acceptEmergency = async (req, res) => {
      .populate("ambulance", "name email mobile vehicleNumber driverName contact")
      .populate("hospital", "name location contact email");
 
+    // Update related booking if it's a regular booking request
+    if (request.requestType === "BOOKING") {
+      await Booking.findOneAndUpdate(
+        { requestId: id },
+        { status: "ACCEPTED", ambulance: req.user._id }
+      );
+    }
+
     const io = getIO();
     // Notify the user tracking the request
     io.to(`request_${id}`).emit("ambulance_assigned", {
@@ -144,10 +173,12 @@ export const acceptEmergency = async (req, res) => {
       hospitalLocation: request.hospital?.location || "N/A",
     });
 
-    // Notify Hospitals & Police
-    io.to("hospital").emit("hospital_alert", { request });
-    io.to("police").emit("police_new_case", { request });
-    io.to("police").emit("police_alert", { request });
+    // Notify Hospitals & Police only for EMERGENCY type
+    if (request.requestType === "EMERGENCY") {
+      io.to("hospital").emit("hospital_alert", { request });
+      io.to("police").emit("police_new_case", { request });
+      io.to("police").emit("police_alert", { request });
+    }
 
     // Broadcast that this emergency has been accepted so other drivers' dashboards drop it
     io.to("ambulance").emit("emergency_accepted", { requestId: id });
@@ -204,8 +235,8 @@ export const getDriverHistory = async (req, res) => {
 
     const filter = req.query.filter || "24h";
 
-    // Time 1 minute ago for ongoing
-    const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000);
+    // Time 30 minutes ago for ongoing (increased from 1 min to allow seeing bookings)
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
 
     // 1. New/Ongoing Requests within 1 minute that this driver hasn't declined
     // Only fetch if driver is LIVE
@@ -213,7 +244,7 @@ export const getDriverHistory = async (req, res) => {
     if (req.user.driverStatus === "LIVE") {
       ongoing = await emergencyRequestSchema.find({
         status: "PENDING",
-        createdAt: { $gte: oneMinuteAgo },
+        createdAt: { $gte: thirtyMinutesAgo },
         declinedBy: { $ne: driverId }
       }).sort({ createdAt: -1 });
     }

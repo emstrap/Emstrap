@@ -8,7 +8,8 @@ export const createBooking = async (req, res) => {
 
         let baseRate = 100; // BASIC
         if (ambulanceType === "OXYGEN") baseRate = 150;
-        if (ambulanceType === "ICU") baseRate = 200;
+        if (ambulanceType === "ICU") baseRate = 250;
+        if (ambulanceType === "PREGNANT") baseRate = 200;
 
         const estimatedPrice = distanceKm ? parseFloat((distanceKm * baseRate).toFixed(2)) : 500;
 
@@ -29,9 +30,17 @@ export const createBooking = async (req, res) => {
             requestType: "BOOKING"
         });
 
+        // Link the emergency request to the booking
+        booking.requestId = emergencyReq._id;
+        await booking.save();
+
+        // Fetch and populate for the socket emit
+        const populatedEmergencyReq = await EmergencyRequest.findById(emergencyReq._id)
+            .populate("user", "name mobile email address city");
+
         // Emit to all ambulances
         const io = getIO();
-        io.to("ambulance").emit("new_emergency_request", emergencyReq);
+        io.to("ambulance").emit("new_emergency_request", populatedEmergencyReq);
 
         res.status(201).json({
             success: true,

@@ -29,8 +29,8 @@ export default function AmbulanceDashboard() {
   const [userLocation, setUserLocation] = useState(null);
   const watchIdRef = useRef(null);
 
-  // Expiry in milliseconds (1 min)
-  const EXPIRY_MS = 1 * 60 * 1000;
+  // Expiry in milliseconds (30 mins) - gives drivers more time to see bookings
+  const EXPIRY_MS = 30 * 60 * 1000;
 
   const fetchHistory = async () => {
     try {
@@ -49,6 +49,11 @@ export default function AmbulanceDashboard() {
     setSocket(newSocket);
 
     newSocket.on("new_emergency_request", (data) => {
+      console.log("New request received via socket:", data);
+      toast.success(data.requestType === "EMERGENCY" ? "🚨 NEW EMERGENCY ALERT!" : "📅 New Ambulance Booking Request!", {
+        duration: 6000,
+        icon: data.requestType === "EMERGENCY" ? "🚑" : "📅"
+      });
       // Add only if not already there to prevent dupes
       setRequests((prev) => {
         if (prev.find(r => r._id === data._id)) return prev;
@@ -262,7 +267,7 @@ export default function AmbulanceDashboard() {
   };
 
   // The currently assigned emergency the driver is en route to
-  const currentAssignment = acceptedHistory.length > 0 ? acceptedHistory[0] : null;
+  const currentAssignment = acceptedHistory.find(req => req.status === "AMBULANCE_ACCEPTED") || null;
 
   return (
     <>
@@ -286,19 +291,25 @@ export default function AmbulanceDashboard() {
                </div>
                 <div className="text-white flex-1 min-w-0">
                   <h3 className="font-bold text-base truncate">
-                    En Route: {currentAssignment.hospital?.name || "Select a Hospital"}
+                    {currentAssignment.requestType === "EMERGENCY" 
+                      ? `En Route: ${currentAssignment.hospital?.name || "Select a Hospital"}`
+                      : "Booking in Progress"}
                   </h3>
                   <p className="text-sm opacity-90 truncate">
-                    {currentAssignment.hospital?.location || "Tap \"Select Hospital\" to assign"}
+                    {currentAssignment.requestType === "EMERGENCY"
+                      ? (currentAssignment.hospital?.location || "Tap \"Select Hospital\" to assign")
+                      : "Driving to pickup location"}
                   </p>
                 </div>
                 <div className="flex flex-col gap-1 ml-auto shrink-0">
-                  <button
-                    onClick={openHospitalPicker}
-                    className="text-xs bg-white text-green-700 px-3 py-1.5 rounded-full font-bold shadow-sm text-center hover:bg-green-50 transition-colors"
-                  >
-                    🏥 {currentAssignment.hospital ? "Change" : "Select"} Hospital
-                  </button>
+                  {currentAssignment.requestType === "EMERGENCY" && (
+                    <button
+                      onClick={openHospitalPicker}
+                      className="text-xs bg-white text-green-700 px-3 py-1.5 rounded-full font-bold shadow-sm text-center hover:bg-green-50 transition-colors"
+                    >
+                      🏥 {currentAssignment.hospital ? "Change" : "Select"} Hospital
+                    </button>
+                  )}
                   <Link to="/booking-history" className="text-xs bg-white/20 text-white px-3 py-1.5 rounded-full font-bold shadow-sm text-center hover:bg-white/30 transition-colors">
                     Details
                   </Link>
@@ -318,13 +329,15 @@ export default function AmbulanceDashboard() {
         {/* Incoming Emergency Modal Overlays */}
         {/* We stack them absolute at the bottom like Uber/Rapido */}
         <div className="absolute bottom-6 left-0 w-full px-4 flex flex-col gap-3 z-20 pointer-events-none">
-          {requests.map((req) => (
-            <div key={req._id} className="mx-auto w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border-2 border-red-500 overflow-hidden pointer-events-auto transform transition-all translate-y-0 opacity-100 animate-slide-up">
-              <div className="bg-red-500 p-2.5 text-center text-white font-bold tracking-widest text-sm animate-pulse">
-                🚨 NEW EMERGENCY
+          {!currentAssignment && requests.map((req) => (
+            <div key={req._id} className={`mx-auto w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border-2 ${req.requestType === "EMERGENCY" ? "border-red-500" : "border-blue-500"} overflow-hidden pointer-events-auto transform transition-all translate-y-0 opacity-100 animate-slide-up`}>
+              <div className={`${req.requestType === "EMERGENCY" ? "bg-red-500 animate-pulse" : "bg-blue-500"} p-2.5 text-center text-white font-bold tracking-widest text-sm`}>
+                {req.requestType === "EMERGENCY" ? "🚨 NEW EMERGENCY" : "📅 NEW BOOKING"}
               </div>
               <div className="p-4">
-                <p className="text-gray-800 dark:text-gray-200 font-medium mb-1">Patient Needs Immediate Help!</p>
+                <p className="text-gray-800 dark:text-gray-200 font-medium mb-1">
+                  {req.requestType === "EMERGENCY" ? "Patient Needs Immediate Help!" : "New trip request from patient"}
+                </p>
                 <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-4 bg-gray-50 dark:bg-gray-900/50 p-2 rounded-lg">
                   <span className="text-xl">📍</span>
                   <span className="truncate">[{req.location?.latitude?.toFixed(4)}, {req.location?.longitude?.toFixed(4)}]</span>

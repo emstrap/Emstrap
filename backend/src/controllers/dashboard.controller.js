@@ -6,7 +6,7 @@ import Ambulance from "../models/ambulance.model.js";
 
 export const getAlerts = async (req, res) => {
   try {
-    const alerts = await Emergency.find()
+    const alerts = await Emergency.find({ requestType: "EMERGENCY" })
       .populate("user", "name email mobile city")
       .populate("ambulance", "name email mobile vehicleNumber driverName contact")
       .sort({ createdAt: -1 })

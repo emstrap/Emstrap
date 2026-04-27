@@ -24,7 +24,7 @@ const bookingSchema = new Schema(
         },
         ambulanceType: {
             type: String,
-            enum: ["BASIC", "OXYGEN", "ICU"],
+            enum: ["BASIC", "OXYGEN", "ICU", "PREGNANT"],
             default: "BASIC"
         },
         status: {
@@ -44,6 +44,11 @@ const bookingSchema = new Schema(
         distanceKm: {
             type: Number,
             default: 0
+        },
+        requestId: {
+            type: Schema.Types.ObjectId,
+            ref: "EmergencyRequest",
+            required: false,
         }
     },
     { timestamps: true }

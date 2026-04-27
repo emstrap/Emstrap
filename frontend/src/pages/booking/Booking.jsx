@@ -100,7 +100,8 @@ export default function Booking() {
     const getPrice = () => {
         let baseRate = 100; // BASIC
         if (ambulanceType === "OXYGEN") baseRate = 150;
-        if (ambulanceType === "ICU") baseRate = 200;
+        if (ambulanceType === "ICU") baseRate = 250;
+        if (ambulanceType === "PREGNANT") baseRate = 200;
 
         return (baseRate * distanceKm);
     };
@@ -203,6 +204,7 @@ export default function Booking() {
                                 <option value="BASIC">Basic Support (BLS)</option>
                                 <option value="OXYGEN">Oxygen Support</option>
                                 <option value="ICU">Advanced / ICU (ALS)</option>
+                                <option value="PREGNANT">Pregnancy Care</option>
                             </select>
                         </div>
 

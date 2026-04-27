@@ -23,7 +23,8 @@ const validatePolicePayload = (payload, isPartial = false) => {
 export const getActiveEmergencies = async (req, res) => {
     try {
         const query = {
-            status: { $in: ["PENDING", "AMBULANCE_ACCEPTED"] }
+            status: { $in: ["PENDING", "AMBULANCE_ACCEPTED"] },
+            requestType: "EMERGENCY"
         };
 
         // If the user is a standard police station (field unit), restrict to 24h recent cases.
@@ -48,7 +49,7 @@ export const getActiveEmergencies = async (req, res) => {
 // Fetch ALL emergencies as police cases (all statuses)
 export const getPoliceCases = async (req, res) => {
     try {
-        const query = {};
+        const query = { requestType: "EMERGENCY" };
 
         // Standard police stations see only last 7 days; police_hq sees everything
         if (req.user.role === "police") {

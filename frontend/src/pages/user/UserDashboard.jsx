@@ -95,12 +95,22 @@ export default function UserDashboard() {
                         {b.status}
                       </span>
                       {b.status === "PENDING" || b.status === "ACCEPTED" || b.status === "IN_PROGRESS" ? (
-                        <button
-                          onClick={() => handleCancel(b._id)}
-                          className="text-red-600 hover:text-red-700 text-xs font-bold underline"
-                        >
-                          Cancel Booking
-                        </button>
+                        <div className="flex flex-col items-end gap-2">
+                          {(b.status === "ACCEPTED" || b.status === "IN_PROGRESS") && b.requestId && (
+                            <Link
+                              to={`/tracking/${b.requestId}`}
+                              className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-colors text-center w-full"
+                            >
+                              Track Live
+                            </Link>
+                          )}
+                          <button
+                            onClick={() => handleCancel(b._id)}
+                            className="text-red-600 hover:text-red-700 text-xs font-bold underline"
+                          >
+                            Cancel Booking
+                          </button>
+                        </div>
                       ) : null}
                     </div>
                   </div>

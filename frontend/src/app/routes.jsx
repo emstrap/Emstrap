@@ -6,7 +6,7 @@ import ProtectedRoute from "./ProtectedRoutes";
 const Emergency = lazy(() => import("../pages/emergency/Emergency"));
 const Login = lazy(() => import("../pages/auth/Login"));
 const Register = lazy(() => import("../pages/auth/Register"));
-const Tracking = lazy(() => import("../components/emergency/Tracking"));
+const Tracking = lazy(() => import("../pages/user/Tracking"));
 const Booking = lazy(() => import("../pages/booking/Booking"));
 const DashboardRouter = lazy(() => import("../pages/dashboard/DashboardRouter"));
 const UserProfile = lazy(() => import("../pages/user/UserProfile"));
@@ -50,7 +50,7 @@ export default function AppRoutes() {
         <Route path="/verify-email/:token" element={<VerifyEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
-        <Route path="/tracking" element={<Tracking />} />
+        <Route path="/tracking/:requestId" element={<Tracking />} />
 
         {/* Protected Routes */}
         <Route path="/booking" element={
