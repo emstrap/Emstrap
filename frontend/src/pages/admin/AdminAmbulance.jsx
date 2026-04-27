@@ -15,14 +15,20 @@ import {
 } from "../../services/ambulanceApi";
 
 const initialForm = {
-  driverName: "",
+  name: "",
   vehicleNumber: "",
-  contact: "",
-  location: "",
-  status: "AVAILABLE",
+  mobile: "",
+  address: "",
+  city: "",
+  email: "",
+  password: "",
+  driverStatus: "OFFLINE",
 };
 
-const statusOptions = ["AVAILABLE", "BUSY", "OFFLINE", "MAINTENANCE"];
+const statusOptions = [
+  { label: "Online", value: "LIVE" },
+  { label: "Offline", value: "OFFLINE" },
+];
 
 export default function AdminAmbulance() {
   const [ambulances, setAmbulances] = useState([]);
@@ -46,7 +52,7 @@ export default function AdminAmbulance() {
       if (res.success) setAmbulances(res.ambulances || []);
       setError("");
     } catch (requestError) {
-      const message = getErrorMessage(requestError, "Failed to load ambulances");
+      const message = getErrorMessage(requestError, "Failed to load ambulance drivers");
       setError(message);
       toast.error(message);
     } finally {
@@ -69,11 +75,14 @@ export default function AdminAmbulance() {
   const openEditModal = (ambulance) => {
     setEditingAmbulance(ambulance);
     setForm({
-      driverName: ambulance.driverName || "",
+      name: ambulance.name || "",
       vehicleNumber: ambulance.vehicleNumber || "",
-      contact: ambulance.contact || "",
-      location: ambulance.location || "",
-      status: ambulance.status || "AVAILABLE",
+      mobile: ambulance.mobile || "",
+      address: ambulance.address || "",
+      city: ambulance.city || "",
+      email: ambulance.email || "",
+      password: "", // Leave blank on update
+      driverStatus: ambulance.driverStatus || "OFFLINE",
     });
   };
 
@@ -89,12 +98,12 @@ export default function AdminAmbulance() {
     try {
       const res = await addAmbulance(form);
       if (res.success) {
-        toast.success("Ambulance added successfully");
+        toast.success("Ambulance driver added successfully");
         resetForm();
         await fetchAmbulances({ silent: true });
       }
     } catch (requestError) {
-      toast.error(getErrorMessage(requestError, "Failed to add ambulance"));
+      toast.error(getErrorMessage(requestError, "Failed to add ambulance driver"));
     } finally {
       setSaving(false);
     }
@@ -111,61 +120,65 @@ export default function AdminAmbulance() {
       if (res.success) {
         setAmbulances((current) => current.map((item) => item._id === editingAmbulance._id ? res.ambulance : item));
         setSelectedAmbulance((current) => current?._id === editingAmbulance._id ? res.ambulance : current);
-        toast.success("Ambulance updated successfully");
+        toast.success("Ambulance driver updated successfully");
         closeEditModal();
       }
     } catch (requestError) {
-      toast.error(getErrorMessage(requestError, "Failed to update ambulance"));
+      toast.error(getErrorMessage(requestError, "Failed to update ambulance driver"));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id) => {
-    const loadingToast = toast.loading("Deleting ambulance...");
+    const loadingToast = toast.loading("Deleting ambulance driver...");
 
     try {
       const res = await deleteAmbulance(id);
       if (res.success) {
         setAmbulances((current) => current.filter((item) => item._id !== id));
         if (selectedAmbulance?._id === id) setSelectedAmbulance(null);
-        toast.success("Ambulance deleted", { id: loadingToast });
+        toast.success("Ambulance driver deleted", { id: loadingToast });
       }
     } catch (requestError) {
-      toast.error(getErrorMessage(requestError, "Failed to delete ambulance"), { id: loadingToast });
+      toast.error(getErrorMessage(requestError, "Failed to delete ambulance driver"), { id: loadingToast });
     }
   };
 
   const getDetails = (ambulance) => ({
-    "Driver Name": ambulance.driverName,
+    Name: ambulance.name,
     "Vehicle Number": ambulance.vehicleNumber,
-    Contact: ambulance.contact,
-    Location: ambulance.location,
-    Status: ambulance.status,
-    "Current Location": ambulance.currentLocation,
-    "Active Request": ambulance.activeRequest,
+    Mobile: ambulance.mobile,
+    Email: ambulance.email,
+    Address: ambulance.address,
+    City: ambulance.city,
+    Status: ambulance.driverStatus === "LIVE" ? "Online" : "Offline",
+    "On Trip": ambulance.isOnTrip ? "Yes" : "No",
     "Created Date": formatDate(ambulance.createdAt),
     "Updated Date": formatDate(ambulance.updatedAt),
-    "Ambulance ID": ambulance._id,
+    "Driver ID": ambulance._id,
   });
 
   const renderForm = (onSubmit, submitLabel, clearAction) => (
     <form onSubmit={onSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <input name="driverName" value={form.driverName} onChange={handleInputChange} placeholder="Driver name" className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" required />
+      <input name="name" value={form.name} onChange={handleInputChange} placeholder="Driver name" className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" required />
       <input name="vehicleNumber" value={form.vehicleNumber} onChange={handleInputChange} placeholder="Vehicle number" className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" required />
-      <input name="contact" value={form.contact} onChange={handleInputChange} placeholder="Contact" className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" required />
-      <input name="location" value={form.location} onChange={handleInputChange} placeholder="Location" className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" required />
-      <select name="status" value={form.status} onChange={handleInputChange} className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100">
-        {statusOptions.map((status) => (
-          <option key={status} value={status}>{status}</option>
+      <input name="mobile" value={form.mobile} onChange={handleInputChange} placeholder="Mobile number" className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" required />
+      <input name="email" type="email" value={form.email} onChange={handleInputChange} placeholder="Email" className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" required />
+      <input name="address" value={form.address} onChange={handleInputChange} placeholder="Address" className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" required />
+      <input name="city" value={form.city} onChange={handleInputChange} placeholder="City" className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" required />
+      <input name="password" type="password" value={form.password} onChange={handleInputChange} placeholder={editingAmbulance ? "Password (leave blank to keep current)" : "Password"} className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" required={!editingAmbulance} />
+      <select name="driverStatus" value={form.driverStatus} onChange={handleInputChange} className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100">
+        {statusOptions.map((opt) => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
         ))}
       </select>
       <div className="flex gap-3 md:col-span-2">
-        <button type="submit" disabled={saving} className="rounded-xl bg-emerald-600 px-4 py-2 font-semibold text-white disabled:opacity-60">
+        <button type="submit" disabled={saving} className="px-4 py-2 rounded-xl bg-red-600 text-white font-semibold disabled:opacity-60">
           {saving ? "Saving..." : submitLabel}
         </button>
         <button type="button" onClick={clearAction} className="rounded-xl bg-gray-100 px-4 py-2 font-semibold text-gray-800 dark:bg-gray-700 dark:text-gray-100">
-          Clear
+          {editingAmbulance ? "Cancel" : "Clear"}
         </button>
       </div>
     </form>
@@ -173,8 +186,8 @@ export default function AdminAmbulance() {
 
   return (
     <AdminLayout
-      title="Ambulance"
-      description="Merged ambulance and driver module backed by the /api/ambulances collection."
+      title="Ambulance Driver Management"
+      description="Manage ambulance drivers directly in the User collection."
       actions={
         <button
           type="button"
@@ -193,8 +206,8 @@ export default function AdminAmbulance() {
       ) : null}
 
       <AdminSurface className="mb-6 p-6">
-        <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">Add Ambulance</h2>
-        {renderForm(handleCreate, "Add Ambulance", resetForm)}
+        <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">Add Ambulance Driver</h2>
+        {renderForm(handleCreate, "Add Driver", resetForm)}
       </AdminSurface>
 
       <AdminSurface className="overflow-hidden">
@@ -202,26 +215,28 @@ export default function AdminAmbulance() {
           <table className="w-full border-collapse text-left">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wider text-gray-500 dark:border-gray-700 dark:bg-gray-900/50 dark:text-gray-400">
-                <th className="p-5 font-bold">Driver Name</th>
-                <th className="p-5 font-bold">Vehicle Number</th>
+                <th className="p-5 font-bold">Name</th>
+                <th className="p-5 font-bold">Vehicle</th>
                 <th className="p-5 font-bold">Contact</th>
+                <th className="p-5 font-bold">Email</th>
                 <th className="p-5 font-bold">Status</th>
                 <th className="p-5 font-bold">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {loading ? (
-                <AdminLoadingRow colSpan={5} label="Loading ambulances..." />
+                <AdminLoadingRow colSpan={6} label="Loading ambulance drivers..." />
               ) : ambulances.length === 0 ? (
-                <AdminEmptyRow colSpan={5} label="No ambulances found." />
+                <AdminEmptyRow colSpan={6} label="No ambulance drivers found." />
               ) : ambulances.map((ambulance) => (
                 <tr key={ambulance._id} onClick={() => setSelectedAmbulance(ambulance)} className="cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/20">
-                  <td className="p-5 font-bold text-gray-900 dark:text-white">{ambulance.driverName}</td>
+                  <td className="p-5 font-bold text-gray-900 dark:text-white">{ambulance.name}</td>
                   <td className="p-5 text-sm text-gray-600 dark:text-gray-400">{ambulance.vehicleNumber}</td>
-                  <td className="p-5 text-sm text-gray-600 dark:text-gray-400">{ambulance.contact}</td>
+                  <td className="p-5 text-sm text-gray-600 dark:text-gray-400">{ambulance.mobile}</td>
+                  <td className="p-5 text-sm text-gray-600 dark:text-gray-400">{ambulance.email}</td>
                   <td className="p-5">
-                    <span className={`rounded-full px-3 py-2 text-xs font-bold ${getStatusBadgeClasses(ambulance.status)}`}>
-                      {ambulance.status}
+                    <span className={`rounded-full px-3 py-2 text-xs font-bold ${ambulance.driverStatus === 'LIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                      {ambulance.driverStatus === 'LIVE' ? 'Online' : 'Offline'}
                     </span>
                   </td>
                   <td className="p-5">
@@ -239,14 +254,14 @@ export default function AdminAmbulance() {
       </AdminSurface>
 
       {selectedAmbulance ? (
-        <AdminModal title={selectedAmbulance.driverName} subtitle="Full ambulance details" onClose={() => setSelectedAmbulance(null)}>
+        <AdminModal title={selectedAmbulance.name} subtitle="Full driver details" onClose={() => setSelectedAmbulance(null)}>
           <AdminDetailGrid data={getDetails(selectedAmbulance)} />
         </AdminModal>
       ) : null}
 
       {editingAmbulance ? (
-        <AdminModal title={`Update ${editingAmbulance.driverName}`} subtitle="Edit the selected ambulance" onClose={closeEditModal}>
-          {renderForm(handleUpdate, "Update Ambulance", closeEditModal)}
+        <AdminModal title={`Update ${editingAmbulance.name}`} subtitle="Edit the selected driver" onClose={closeEditModal}>
+          {renderForm(handleUpdate, "Update Driver", closeEditModal)}
         </AdminModal>
       ) : null}
     </AdminLayout>

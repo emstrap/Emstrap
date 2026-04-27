@@ -1,11 +1,14 @@
-import Ambulance from "../models/ambulance.model.js";
+import User from "../models/user.model.js";
 import EmergencyRequest from "../models/emergencyrequest.model.js";
 import { getIO } from "../sockets/socket.js";
 
-const ambulanceStatuses = ["AVAILABLE", "BUSY", "OFFLINE", "MAINTENANCE"];
+const driverStatuses = ["LIVE", "OFFLINE"];
 
 const validateAmbulancePayload = (payload, isPartial = false) => {
-  const requiredFields = ["driverName", "vehicleNumber", "contact", "location"];
+  const requiredFields = ["name", "vehicleNumber", "mobile", "address", "city", "email"];
+  if (!isPartial) {
+    requiredFields.push("password");
+  }
 
   for (const field of requiredFields) {
     if (!isPartial && !String(payload[field] || "").trim()) {
@@ -13,8 +16,8 @@ const validateAmbulancePayload = (payload, isPartial = false) => {
     }
   }
 
-  if (payload.status && !ambulanceStatuses.includes(payload.status)) {
-    return "Invalid ambulance status";
+  if (payload.driverStatus && !driverStatuses.includes(payload.driverStatus)) {
+    return "Invalid driver status";
   }
 
   return null;
@@ -22,24 +25,24 @@ const validateAmbulancePayload = (payload, isPartial = false) => {
 
 export const getAmbulances = async (req, res) => {
   try {
-    const ambulances = await Ambulance.find().sort({ createdAt: -1 });
+    const ambulances = await User.find({ role: 'ambulance_driver' }).sort({ createdAt: -1 });
     return res.status(200).json({ success: true, ambulances });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Error fetching ambulances", error: error.message });
+    return res.status(500).json({ success: false, message: "Error fetching ambulance drivers", error: error.message });
   }
 };
 
 export const getAmbulanceById = async (req, res) => {
   try {
-    const ambulance = await Ambulance.findById(req.params.id);
+    const ambulance = await User.findOne({ _id: req.params.id, role: 'ambulance_driver' });
 
     if (!ambulance) {
-      return res.status(404).json({ success: false, message: "Ambulance not found" });
+      return res.status(404).json({ success: false, message: "Ambulance driver not found" });
     }
 
     return res.status(200).json({ success: true, ambulance });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Error fetching ambulance", error: error.message });
+    return res.status(500).json({ success: false, message: "Error fetching ambulance driver", error: error.message });
   }
 };
 
@@ -50,21 +53,26 @@ export const createAmbulance = async (req, res) => {
       return res.status(400).json({ success: false, message: validationError });
     }
 
-    const ambulance = await Ambulance.create({
-      driverName: req.body.driverName,
+    const ambulance = await User.create({
+      name: req.body.name,
       vehicleNumber: req.body.vehicleNumber,
-      contact: req.body.contact,
-      location: req.body.location,
-      status: req.body.status || "AVAILABLE",
+      mobile: req.body.mobile,
+      address: req.body.address,
+      city: req.body.city,
+      email: req.body.email,
+      password: req.body.password,
+      driverStatus: req.body.driverStatus || "OFFLINE",
+      role: 'ambulance_driver',
+      isEmailVerified: true,
     });
 
-    return res.status(201).json({ success: true, message: "Ambulance created successfully", ambulance });
+    return res.status(201).json({ success: true, message: "Ambulance driver created successfully", ambulance });
   } catch (error) {
     if (error?.code === 11000) {
-      return res.status(409).json({ success: false, message: "An ambulance with this vehicle number already exists" });
+      return res.status(409).json({ success: false, message: "A user with this email or vehicle number already exists" });
     }
 
-    return res.status(500).json({ success: false, message: "Error creating ambulance", error: error.message });
+    return res.status(500).json({ success: false, message: "Error creating ambulance driver", error: error.message });
   }
 };
 
@@ -76,42 +84,47 @@ export const updateAmbulance = async (req, res) => {
     }
 
     const updatePayload = {};
-    for (const field of ["driverName", "vehicleNumber", "contact", "location", "status"]) {
+    for (const field of ["name", "vehicleNumber", "mobile", "address", "city", "email", "password", "driverStatus"]) {
       if (typeof req.body[field] !== "undefined") {
+        if (field === "password" && !req.body[field]) continue;
         updatePayload[field] = req.body[field];
       }
     }
 
-    const ambulance = await Ambulance.findByIdAndUpdate(req.params.id, updatePayload, {
-      new: true,
-      runValidators: true,
-    });
+    const ambulance = await User.findOneAndUpdate(
+      { _id: req.params.id, role: 'ambulance_driver' },
+      updatePayload,
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
 
     if (!ambulance) {
-      return res.status(404).json({ success: false, message: "Ambulance not found" });
+      return res.status(404).json({ success: false, message: "Ambulance driver not found" });
     }
 
-    return res.status(200).json({ success: true, message: "Ambulance updated successfully", ambulance });
+    return res.status(200).json({ success: true, message: "Ambulance driver updated successfully", ambulance });
   } catch (error) {
     if (error?.code === 11000) {
-      return res.status(409).json({ success: false, message: "An ambulance with this vehicle number already exists" });
+      return res.status(409).json({ success: false, message: "A user with this email or vehicle number already exists" });
     }
 
-    return res.status(500).json({ success: false, message: "Error updating ambulance", error: error.message });
+    return res.status(500).json({ success: false, message: "Error updating ambulance driver", error: error.message });
   }
 };
 
 export const deleteAmbulance = async (req, res) => {
   try {
-    const ambulance = await Ambulance.findByIdAndDelete(req.params.id);
+    const ambulance = await User.findOneAndDelete({ _id: req.params.id, role: 'ambulance_driver' });
 
     if (!ambulance) {
-      return res.status(404).json({ success: false, message: "Ambulance not found" });
+      return res.status(404).json({ success: false, message: "Ambulance driver not found" });
     }
 
-    return res.status(200).json({ success: true, message: "Ambulance deleted successfully" });
+    return res.status(200).json({ success: true, message: "Ambulance driver deleted successfully" });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Error deleting ambulance", error: error.message });
+    return res.status(500).json({ success: false, message: "Error deleting ambulance driver", error: error.message });
   }
 };
 
@@ -136,8 +149,8 @@ export const acceptEmergencyRequest = async (req, res) => {
     }
 
     // 2️⃣ Lock ambulance atomically
-    const ambulance = await Ambulance.findOneAndUpdate(
-      { _id: req.user._id, isOnTrip: false },
+    const ambulance = await User.findOneAndUpdate(
+      { _id: req.user._id, role: 'ambulance_driver', isOnTrip: false },
       { isOnTrip: true },
       { new: true }
     );

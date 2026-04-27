@@ -36,7 +36,7 @@ export const assignHospital = async (req, res) => {
       { new: true }
     )
       .populate("user", "name mobile email address city")
-      .populate("ambulance", "name email mobile vehicleNumber driverName contact")
+      .populate("ambulance", "name email mobile vehicleNumber")
       .populate("hospital", "name address city mobile email");
 
     const io = getIO();
@@ -152,7 +152,7 @@ export const acceptEmergency = async (req, res) => {
       },
       { new: true }
     ).populate("user", "name mobile email address city")
-     .populate("ambulance", "name email mobile vehicleNumber driverName contact")
+     .populate("ambulance", "name email mobile vehicleNumber")
      .populate("hospital", "name address city mobile email");
 
     // Update related booking if it's a regular booking request

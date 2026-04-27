@@ -1,14 +1,12 @@
 import Emergency from "../models/emergencyrequest.model.js";
 import Booking from "../models/booking.model.js";
-import Hospital from "../models/hospital.model.js";
 import User from "../models/user.model.js";
-import Ambulance from "../models/ambulance.model.js";
 
 export const getAlerts = async (req, res) => {
   try {
     const alerts = await Emergency.find({ requestType: "EMERGENCY" })
       .populate("user", "name email mobile city")
-      .populate("ambulance", "name email mobile vehicleNumber driverName contact")
+      .populate("ambulance", "name email mobile vehicleNumber")
       .sort({ createdAt: -1 })
       .limit(50);
 
@@ -20,13 +18,13 @@ export const getAlerts = async (req, res) => {
 
 export const getStats = async (req, res) => {
   try {
-    const [totalAlerts, activeAlerts, totalHospitals, totalBookings, totalUsers, totalAmbulances] = await Promise.all([
+    const [totalAlerts, activeAlerts, totalHospitals, totalBookings, totalUsers, totalAmbulanceDrivers] = await Promise.all([
       Emergency.countDocuments(),
       Emergency.countDocuments({ status: { $in: ["PENDING", "AMBULANCE_ACCEPTED"] } }),
-      Hospital.countDocuments(),
+      User.countDocuments({ role: 'hospital' }),
       Booking.countDocuments(),
       User.countDocuments(),
-      Ambulance.countDocuments(),
+      User.countDocuments({ role: 'ambulance_driver' }),
     ]);
 
     return res.status(200).json({
@@ -37,7 +35,7 @@ export const getStats = async (req, res) => {
         totalHospitals,
         totalBookings,
         totalUsers,
-        totalAmbulances,
+        totalAmbulances: totalAmbulanceDrivers,
       },
     });
   } catch (error) {
@@ -50,9 +48,9 @@ export const getOverviewStats = async (req, res) => {
     const [users, bookings, hospitals, emergencies, liveAmbulances] = await Promise.all([
       User.countDocuments(),
       Booking.countDocuments(),
-      Hospital.countDocuments(),
+      User.countDocuments({ role: 'hospital' }),
       Emergency.countDocuments(),
-      User.countDocuments({ role: { $in: ["ambulance", "ambulance_driver"] }, driverStatus: "LIVE" }),
+      User.countDocuments({ role: 'ambulance_driver', driverStatus: "LIVE" }),
     ]);
 
     return res.status(200).json({
@@ -78,7 +76,7 @@ export const updateEmergencyStatus = async (req, res) => {
 
     const updated = await Emergency.findByIdAndUpdate(id, { status }, { new: true })
       .populate("user", "name email mobile city")
-      .populate("ambulance", "name email mobile vehicleNumber driverName contact");
+      .populate("ambulance", "name email mobile vehicleNumber");
 
     if (!updated) {
       return res.status(404).json({ success: false, message: "Emergency not found" });

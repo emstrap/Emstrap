@@ -19,7 +19,7 @@ const bookingSchema = new Schema(
         },
         hospital: {
             type: Schema.Types.ObjectId,
-            ref: "Hospital",
+            ref: "User",
             required: false,
         },
         ambulanceType: {
@@ -34,7 +34,7 @@ const bookingSchema = new Schema(
         },
         ambulance: {
             type: Schema.Types.ObjectId,
-            ref: "Ambulance",
+            ref: "User",
             default: null,
         },
         estimatedPrice: {

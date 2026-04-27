@@ -49,6 +49,19 @@ const userSchema = new Schema({
         enum: ['LIVE', 'OFFLINE'],
         default: 'OFFLINE'
     },
+    currentLocation: {
+        latitude: Number,
+        longitude: Number
+    },
+    isOnTrip: {
+        type: Boolean,
+        default: false
+    },
+    activeRequest: {
+        type: Schema.Types.ObjectId,
+        ref: "EmergencyRequest",
+        default: null
+    },
     createdAt: {
         type: Date,
         default: Date.now

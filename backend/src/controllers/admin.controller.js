@@ -1,7 +1,6 @@
 import User from "../models/user.model.js";
 import Emergency from "../models/emergencyrequest.model.js";
 import Booking from "../models/booking.model.js";
-import Hospital from "../models/hospital.model.js";
 import bcrypt from "bcryptjs";
 
 const emergencyPopulation = [
@@ -11,7 +10,7 @@ const emergencyPopulation = [
 
 const bookingPopulation = [
     { path: "user", select: "name email mobile city" },
-    { path: "hospital", select: "name email contact location" },
+    { path: "hospital", select: "name email mobile address city" },
     { path: "ambulance", select: "name email mobile vehicleNumber" }
 ];
 
@@ -115,13 +114,14 @@ const buildBucketSequence = (range, now = new Date()) => {
     });
 };
 
-const aggregateTimeline = async (Model, range, startDate, endDate) => {
+const aggregateTimeline = async (Model, range, startDate, endDate, extraMatch = {}) => {
     const { groupFormat } = getRangeConfig(range);
 
     const results = await Model.aggregate([
         {
             $match: {
-                createdAt: { $gte: startDate, $lte: endDate }
+                createdAt: { $gte: startDate, $lte: endDate },
+                ...extraMatch
             }
         },
         {
@@ -157,9 +157,9 @@ export const getAdminStats = async (req, res) => {
         const startDate = buckets[0]?.date || new Date(now);
 
         const [usersMap, bookingsMap, hospitalsMap, emergenciesMap] = await Promise.all([
-            aggregateTimeline(User, range, startDate, now),
+            aggregateTimeline(User, range, startDate, now, { role: 'user' }),
             aggregateTimeline(Booking, range, startDate, now),
-            aggregateTimeline(Hospital, range, startDate, now),
+            aggregateTimeline(User, range, startDate, now, { role: 'hospital' }),
             aggregateTimeline(Emergency, range, startDate, now)
         ]);
 
