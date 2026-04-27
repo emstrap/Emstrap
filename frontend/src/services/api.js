@@ -94,6 +94,16 @@ export const cancelEmergency = async (id) => {
   return res.data;
 };
 
+export const completeEmergencyAPI = async (id) => {
+  const res = await API.put(`/api/emergency/${id}/complete`);
+  return res.data;
+};
+
+export const getEmergencyDetailsAPI = async (id) => {
+  const res = await API.get(`/api/emergency/${id}`);
+  return res.data;
+};
+
 export const getHospitals = async () => {
   const res = await API.get("/api/hospitals");
   return res.data;

@@ -49,12 +49,31 @@ export const assignHospital = async (req, res) => {
     // Also update the user tracking the request
     io.to(`request_${id}`).emit("ambulance_assigned", {
       driverName: req.user.name || "Driver",
+      driverMobile: req.user.mobile || "",
       vehicleNumber: req.user.vehicleNumber || "",
       hospitalName: updated.hospital?.name || "Assigning...",
       hospitalLocation: updated.hospital ? `${updated.hospital.address}, ${updated.hospital.city}` : "N/A",
     });
 
     res.status(200).json({ success: true, data: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getEmergencyDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const request = await emergencyRequestSchema.findById(id)
+      .populate("user", "name mobile email address city")
+      .populate("ambulance", "name email mobile vehicleNumber currentLocation")
+      .populate("hospital", "name address city mobile email");
+
+    if (!request) {
+      return res.status(404).json({ success: false, message: "Request not found" });
+    }
+
+    res.status(200).json({ success: true, data: request });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -168,10 +187,17 @@ export const acceptEmergency = async (req, res) => {
     io.to(`request_${id}`).emit("ambulance_assigned", {
       eta: "Calculating...", // or some other more dynamic placeholder if you don't have real ETA
       driverName: req.user.name || "Driver",
+      driverMobile: req.user.mobile || "",
       vehicleNumber: req.user.vehicleNumber || "",
       hospitalName: request.hospital?.name || "Assigning...",
       hospitalLocation: request.hospital ? `${request.hospital.address}, ${request.hospital.city}` : "N/A",
     });
+
+    // Notify user's personal room for dashboard refresh
+    if (request.user) {
+      const userIdStr = request.user._id ? request.user._id.toString() : request.user.toString();
+      io.to(`user_${userIdStr}`).emit("ambulance_assigned", { requestId: id, status: "ACCEPTED" });
+    }
 
     // Notify Hospitals & Police only for EMERGENCY type
     if (request.requestType === "EMERGENCY") {
@@ -223,7 +249,59 @@ export const cancelEmergency = async (req, res) => {
     // Notify driver tracking the request that user cancelled
     io.to(`request_${id}`).emit("emergency_cancelled", { requestId: id });
 
+    // Notify user's personal room for dashboard refresh
+    if (request.user) {
+      const userIdStr = request.user._id ? request.user._id.toString() : request.user.toString();
+      io.to(`user_${userIdStr}`).emit("emergency_cancelled", { requestId: id, status: "CANCELLED" });
+    }
+
     res.status(200).json({ success: true, data: request });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const completeRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const request = await emergencyRequestSchema.findById(id);
+    if (!request) {
+      return res.status(404).json({ success: false, message: "Request not found" });
+    }
+
+    if (request.ambulance?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "Only the assigned driver can complete this request" });
+    }
+
+    request.status = "COMPLETED";
+    await request.save();
+
+    // Clear activeRequest from the driver
+    await User.findByIdAndUpdate(req.user._id, { 
+      activeRequest: null,
+      isOnTrip: false 
+    });
+
+    // Update related booking if it exists
+    if (request.requestType === "BOOKING") {
+      await Booking.findOneAndUpdate(
+        { requestId: id },
+        { status: "COMPLETED" }
+      );
+    }
+
+    const io = getIO();
+    // Notify the user tracking the request
+    io.to(`request_${id}`).emit("trip_completed", { requestId: id });
+
+    // Notify user's personal room for dashboard refresh
+    if (request.user) {
+      const userIdStr = request.user._id ? request.user._id.toString() : request.user.toString();
+      io.to(`user_${userIdStr}`).emit("trip_completed", { requestId: id, status: "COMPLETED" });
+    }
+
+    res.status(200).json({ success: true, message: "Trip completed successfully", data: request });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

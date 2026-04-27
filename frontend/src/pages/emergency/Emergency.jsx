@@ -24,16 +24,37 @@ export default function Emergency() {
     setStepState(newStep);
   };
 
-  // On mount, if we are in "searching" state, we need to reconnect to the socket
+  // On mount, if we are in "searching" or "accepted" state, we need to reconnect and fetch data
   useEffect(() => {
+    const requestId = sessionStorage.getItem("emergency_requestId");
+    if (!requestId) return;
+
     if (step === "searching") {
-      const requestId = sessionStorage.getItem("emergency_requestId");
-      if (requestId) {
-        reconnectSocket(requestId);
-      } else {
-        // If we lost the request ID somehow, reset
-        resetEmergency();
-      }
+      reconnectSocket(requestId);
+    } else if (step === "accepted") {
+      // Fetch current driver info if we are already accepted but refreshed
+      const fetchCurrentStatus = async () => {
+        try {
+          const res = await API.get(`/api/emergency/${requestId}`);
+          if (res.data?.success && res.data.data.ambulance) {
+            const request = res.data.data;
+            setDriverInfo({
+              driverName: request.ambulance.name,
+              driverMobile: request.ambulance.mobile,
+              vehicleNumber: request.ambulance.vehicleNumber,
+              location: request.ambulance.currentLocation ? {
+                lat: request.ambulance.currentLocation.latitude,
+                lng: request.ambulance.currentLocation.longitude
+              } : null,
+              eta: "5-8 mins"
+            });
+            reconnectSocket(requestId);
+          }
+        } catch (err) {
+          console.error("Failed to restore emergency state", err);
+        }
+      };
+      fetchCurrentStatus();
     }
   }, []);
 
@@ -66,6 +87,18 @@ export default function Emergency() {
           location: { lat: data.lat || data.latitude, lng: data.lng || data.longitude }
         };
       });
+    });
+
+    // Listen for ride completion by driver
+    socket.on("trip_completed", () => {
+      clearTimeout(timer);
+      toast.success("Your ride has been completed! Stay safe. 🚑", { duration: 6000 });
+      resetEmergency();
+    });
+
+    socket.on("emergency_cancelled", () => {
+      toast.error("This emergency request was cancelled.");
+      resetEmergency();
     });
 
     setSocket(socket);
@@ -151,6 +184,13 @@ export default function Emergency() {
 
       socket.on("emergency_cancelled", () => {
         toast.error("This emergency request was cancelled.");
+        resetEmergency();
+      });
+
+      // Listen for ride completion by driver
+      socket.on("trip_completed", () => {
+        clearTimeout(timer);
+        toast.success("Your ride has been completed! Stay safe. 🚑", { duration: 6000 });
         resetEmergency();
       });
 

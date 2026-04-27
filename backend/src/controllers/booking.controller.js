@@ -56,14 +56,39 @@ export const createBooking = async (req, res) => {
 
 export const getBookings = async (req, res) => {
     try {
-        const query = req.user.role === "user" ? { user: req.user._id } : {};
+        const userId = req.user._id;
 
-        // Ambulances could fetch their assigned bookings, Hospitals see bookings heading to them
-        const bookings = await Booking.find(query).sort({ createdAt: -1 });
+        // Fetch regular bookings
+        const bookings = await Booking.find({ user: userId }).sort({ createdAt: -1 });
+
+        // Fetch emergency requests that are NOT linked to bookings (standalone emergencies)
+        // and only show those that are PENDING or ACCEPTED
+        const standaloneEmergencies = await EmergencyRequest.find({
+            user: userId,
+            requestType: "EMERGENCY",
+            status: { $in: ["PENDING", "AMBULANCE_ACCEPTED"] }
+        }).sort({ createdAt: -1 });
+
+        // Transform emergencies to match booking-like structure for the UI
+        const transformedEmergencies = standaloneEmergencies.map(err => ({
+            _id: err._id,
+            requestId: err._id,
+            status: err.status === "AMBULANCE_ACCEPTED" ? "ACCEPTED" : err.status,
+            ambulanceType: "EMERGENCY",
+            pickupLocation: { address: "Live Emergency Location" },
+            estimatedPrice: 0,
+            createdAt: err.createdAt,
+            isEmergency: true
+        }));
+
+        // Combine and sort by date
+        const combined = [...bookings, ...transformedEmergencies].sort((a, b) =>
+            new Date(b.createdAt) - new Date(a.createdAt)
+        );
 
         res.status(200).json({
             success: true,
-            data: bookings,
+            data: combined,
         });
     } catch (error) {
         res.status(500).json({

@@ -121,7 +121,7 @@ export default function Booking() {
 
         setLoading(true);
         try {
-            await API.post("/api/bookings", {
+            const res = await API.post("/api/bookings", {
                 pickupLocation: {
                     address: pickup.address,
                     latitude: pickup.lat,
@@ -136,12 +136,19 @@ export default function Booking() {
                 distanceKm
             });
 
+            const requestId = res.data?.data?.requestId;
+
             toast.success("Ambulance booked successfully!");
             sessionStorage.removeItem('booking_pickup');
             sessionStorage.removeItem('booking_dropoff');
             sessionStorage.removeItem('booking_ambulanceType');
             sessionStorage.removeItem('booking_timestamp');
-            navigate("/dashboard");
+
+            if (requestId) {
+                navigate(`/tracking/${requestId}`);
+            } else {
+                navigate("/dashboard");
+            }
         } catch (err) {
             toast.error("Failed to book ambulance. Try again.");
         } finally {

@@ -108,7 +108,10 @@ export default function LiveTrackingMap({ userLocation, driverLocation, height =
                : [20.5937, 78.9629]; // Default Geographic India point map
 
   return (
-    <div className={`w-full min-h-[${height}] rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-700 relative z-0 flex flex-col flex-1`} style={{ height, minHeight: height }}>
+    <div 
+      className="w-full rounded-2xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-700 relative z-0 flex flex-col" 
+      style={{ height: height, minHeight: height }}
+    >
       
       {/* Visual Overlay Error Warning */}
       {!import.meta.env.VITE_ORS_API_KEY && (

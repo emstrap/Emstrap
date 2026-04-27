@@ -8,6 +8,9 @@ const allowedOrigins = [
   "http://127.0.0.1:5173"
 ].filter(Boolean);
 
+// To optimize DB performance, we throttle location updates to once every 5 seconds per request
+const lastUpdateMap = new Map();
+
 export const initSocket = (server) => {
   io = new Server(server, {
     cors: {
@@ -44,17 +47,62 @@ export const initSocket = (server) => {
     });
 
     // Ambulance sends live location
-    socket.on("update_location", (data) => {
-      // Broadcast location to the specific request room
+    socket.on("update_location", async (data) => {
+      // 1. ALWAYS broadcast in real-time (fast, no DB load)
       if (data.requestId) {
         io.to(`request_${data.requestId}`).emit("ambulance_location", data);
+        
+        // 2. Throttled Persist to DB (slow, every 5 seconds)
+        try {
+          const now = Date.now();
+          const lastUpdate = lastUpdateMap.get(`driver_${data.requestId}`) || 0;
+          
+          if (now - lastUpdate > 5000) { // 5 seconds throttle
+            lastUpdateMap.set(`driver_${data.requestId}`, now);
+            
+            const EmergencyRequest = (await import("../models/emergencyrequest.model.js")).default;
+            const User = (await import("../models/user.model.js")).default;
+            
+            const request = await EmergencyRequest.findById(data.requestId);
+            if (request && request.ambulance) {
+              await User.findByIdAndUpdate(request.ambulance, {
+                currentLocation: {
+                  latitude: data.lat,
+                  longitude: data.lng
+                }
+              });
+            }
+          }
+        } catch (err) {
+          console.error("Failed to persist driver location:", err);
+        }
       }
     });
 
     // User sends live location
-    socket.on("update_user_location", (data) => {
+    socket.on("update_user_location", async (data) => {
+      // 1. ALWAYS broadcast in real-time
       if (data.requestId) {
         io.to(`request_${data.requestId}`).emit("user_location", data);
+        
+        // 2. Throttled Persist to DB
+        try {
+          const now = Date.now();
+          const lastUpdate = lastUpdateMap.get(`user_${data.requestId}`) || 0;
+          
+          if (now - lastUpdate > 5000) {
+            lastUpdateMap.set(`user_${data.requestId}`, now);
+            const EmergencyRequest = (await import("../models/emergencyrequest.model.js")).default;
+            await EmergencyRequest.findByIdAndUpdate(data.requestId, {
+              location: {
+                latitude: data.latitude,
+                longitude: data.longitude
+              }
+            });
+          }
+        } catch (err) {
+          console.error("Failed to persist user location:", err);
+        }
       }
     });
 
@@ -63,6 +111,13 @@ export const initSocket = (server) => {
       if (data.requestId) {
         socket.join(`request_${data.requestId}`);
         console.log(`User tracking request: ${data.requestId}`);
+      }
+    });
+
+    socket.on("join_user", (data) => {
+      if (data.userId) {
+        socket.join(`user_${data.userId}`);
+        console.log(`User joined personal room: ${data.userId}`);
       }
     });
 
