@@ -1,5 +1,5 @@
 import emergencyRequestSchema from "../models/emergencyrequest.model.js";
-import Hospital from "../models/hospital.model.js";
+import User from "../models/user.model.js";
 import { getIO } from "../sockets/socket.js";
 import cloudinary from "../config/cloudinary.js";
 import Booking from "../models/booking.model.js";
@@ -13,7 +13,7 @@ export const assignHospital = async (req, res) => {
       return res.status(400).json({ success: false, message: "hospitalId is required" });
     }
 
-    const hospital = await Hospital.findById(hospitalId);
+    const hospital = await User.findOne({ _id: hospitalId, role: 'hospital' });
     if (!hospital) {
       return res.status(404).json({ success: false, message: "Hospital not found" });
     }
@@ -37,7 +37,7 @@ export const assignHospital = async (req, res) => {
     )
       .populate("user", "name mobile email address city")
       .populate("ambulance", "name email mobile vehicleNumber driverName contact")
-      .populate("hospital", "name location contact email");
+      .populate("hospital", "name address city mobile email");
 
     const io = getIO();
 
@@ -51,7 +51,7 @@ export const assignHospital = async (req, res) => {
       driverName: req.user.name || "Driver",
       vehicleNumber: req.user.vehicleNumber || "",
       hospitalName: updated.hospital?.name || "Assigning...",
-      hospitalLocation: updated.hospital?.location || "N/A",
+      hospitalLocation: updated.hospital ? `${updated.hospital.address}, ${updated.hospital.city}` : "N/A",
     });
 
     res.status(200).json({ success: true, data: updated });
@@ -139,7 +139,7 @@ export const acceptEmergency = async (req, res) => {
     // Find nearest hospital only for EMERGENCY type
     let hospitalId = null;
     if (existingRequest.requestType === "EMERGENCY") {
-      const nearestHospital = await Hospital.findOne();
+      const nearestHospital = await User.findOne({ role: 'hospital' });
       hospitalId = nearestHospital ? nearestHospital._id : null;
     }
 
@@ -153,7 +153,7 @@ export const acceptEmergency = async (req, res) => {
       { new: true }
     ).populate("user", "name mobile email address city")
      .populate("ambulance", "name email mobile vehicleNumber driverName contact")
-     .populate("hospital", "name location contact email");
+     .populate("hospital", "name address city mobile email");
 
     // Update related booking if it's a regular booking request
     if (request.requestType === "BOOKING") {
@@ -170,7 +170,7 @@ export const acceptEmergency = async (req, res) => {
       driverName: req.user.name || "Driver",
       vehicleNumber: req.user.vehicleNumber || "",
       hospitalName: request.hospital?.name || "Assigning...",
-      hospitalLocation: request.hospital?.location || "N/A",
+      hospitalLocation: request.hospital ? `${request.hospital.address}, ${request.hospital.city}` : "N/A",
     });
 
     // Notify Hospitals & Police only for EMERGENCY type

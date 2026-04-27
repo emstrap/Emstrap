@@ -11,9 +11,11 @@ import { addHospital, deleteHospital, getHospitals, updateHospital } from "../..
 
 const initialForm = {
   name: "",
-  location: "",
-  contact: "",
+  address: "",
+  city: "",
+  mobile: "",
   email: "",
+  password: "",
 };
 
 export default function Hospital() {
@@ -76,9 +78,11 @@ export default function Hospital() {
     setEditingHospital(hospital);
     setForm({
       name: hospital.name || "",
-      location: hospital.location || "",
-      contact: hospital.contact || "",
+      address: hospital.address || "",
+      city: hospital.city || "",
+      mobile: hospital.mobile || "",
       email: hospital.email || "",
+      password: "", // Leave blank on edit unless updating
     });
   };
 
@@ -131,8 +135,9 @@ export default function Hospital() {
 
   const getHospitalDetails = (hospital) => ({
     Name: hospital.name,
-    Location: hospital.location,
-    Contact: hospital.contact,
+    Address: hospital.address,
+    City: hospital.city,
+    Mobile: hospital.mobile,
     Email: hospital.email,
     "Created Date": formatDate(hospital.createdAt),
     "Updated Date": formatDate(hospital.updatedAt),
@@ -165,9 +170,11 @@ export default function Hospital() {
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input name="name" value={form.name} onChange={handleInputChange} placeholder="Hospital name" className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3" required />
-          <input name="location" value={form.location} onChange={handleInputChange} placeholder="Location" className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3" required />
-          <input name="contact" value={form.contact} onChange={handleInputChange} placeholder="Contact number" className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3" required />
+          <input name="address" value={form.address} onChange={handleInputChange} placeholder="Address" className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3" required />
+          <input name="city" value={form.city} onChange={handleInputChange} placeholder="City" className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3" required />
+          <input name="mobile" value={form.mobile} onChange={handleInputChange} placeholder="Mobile number" className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3" required />
           <input type="email" name="email" value={form.email} onChange={handleInputChange} placeholder="Email" className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3" required />
+          <input type="password" name="password" value={form.password} onChange={handleInputChange} placeholder="Password" className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3" required />
           <div className="md:col-span-2 flex gap-3">
             <button type="submit" disabled={saving} className="px-4 py-2 rounded-xl bg-red-600 text-white font-semibold disabled:opacity-60">
               {saving ? "Saving..." : "Add Hospital"}
@@ -185,8 +192,8 @@ export default function Hospital() {
             <thead>
               <tr className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 uppercase text-xs tracking-wider">
                 <th className="p-5 font-bold">Name</th>
-                <th className="p-5 font-bold">Location</th>
-                <th className="p-5 font-bold">Contact</th>
+                <th className="p-5 font-bold">Address</th>
+                <th className="p-5 font-bold">Mobile</th>
                 <th className="p-5 font-bold">Email</th>
                 <th className="p-5 font-bold">Created</th>
                 <th className="p-5 font-bold">Actions</th>
@@ -200,8 +207,8 @@ export default function Hospital() {
               ) : hospitals.map((hospital) => (
                 <tr key={hospital._id} onClick={() => setSelectedHospital(hospital)} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/20 transition-colors">
                   <td className="p-5 font-bold text-gray-900 dark:text-white">{hospital.name}</td>
-                  <td className="p-5 text-sm text-gray-600 dark:text-gray-400">{hospital.location}</td>
-                  <td className="p-5 text-sm text-gray-600 dark:text-gray-400">{hospital.contact}</td>
+                  <td className="p-5 text-sm text-gray-600 dark:text-gray-400">{hospital.address}, {hospital.city}</td>
+                  <td className="p-5 text-sm text-gray-600 dark:text-gray-400">{hospital.mobile}</td>
                   <td className="p-5 text-sm text-gray-600 dark:text-gray-400">{hospital.email}</td>
                   <td className="p-5 text-sm text-gray-600 dark:text-gray-400">{formatDate(hospital.createdAt)}</td>
                   <td className="p-5">
@@ -228,9 +235,11 @@ export default function Hospital() {
         <AdminModal title={`Update ${editingHospital.name}`} subtitle="Edit the selected hospital record" onClose={closeEditModal}>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <input name="name" value={form.name} onChange={handleInputChange} placeholder="Hospital name" className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3" required />
-            <input name="location" value={form.location} onChange={handleInputChange} placeholder="Location" className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3" required />
-            <input name="contact" value={form.contact} onChange={handleInputChange} placeholder="Contact number" className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3" required />
+            <input name="address" value={form.address} onChange={handleInputChange} placeholder="Address" className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3" required />
+            <input name="city" value={form.city} onChange={handleInputChange} placeholder="City" className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3" required />
+            <input name="mobile" value={form.mobile} onChange={handleInputChange} placeholder="Mobile number" className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3" required />
             <input type="email" name="email" value={form.email} onChange={handleInputChange} placeholder="Email" className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3" required />
+            <input type="password" name="password" value={form.password} onChange={handleInputChange} placeholder="Password (leave blank to keep current)" className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 rounded-xl px-4 py-3" />
             <div className="md:col-span-2 flex gap-3">
               <button type="submit" disabled={saving} className="px-4 py-2 rounded-xl bg-blue-600 text-white font-semibold disabled:opacity-60">
                 {saving ? "Saving..." : "Update Hospital"}

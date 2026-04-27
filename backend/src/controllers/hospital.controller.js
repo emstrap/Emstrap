@@ -1,9 +1,9 @@
-import Hospital from "../models/hospital.model.js";
+import User from "../models/user.model.js";
 
 const isValidEmail = (email) => /[^\s@]+@[^\s@]+\.[^\s@]+/.test(email);
 
 const validateHospitalPayload = (payload, isPartial = false) => {
-  const requiredFields = ["name", "location", "contact", "email"];
+  const requiredFields = ["name", "address", "city", "mobile", "email"];
 
   for (const field of requiredFields) {
     if (!isPartial && !payload[field]) {
@@ -20,7 +20,7 @@ const validateHospitalPayload = (payload, isPartial = false) => {
 
 export const getHospitals = async (req, res) => {
   try {
-    const hospitals = await Hospital.find().sort({ createdAt: -1 });
+    const hospitals = await User.find({ role: 'hospital' }).sort({ createdAt: -1 });
     return res.status(200).json({ success: true, hospitals });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Error fetching hospitals", error: error.message });
@@ -29,7 +29,7 @@ export const getHospitals = async (req, res) => {
 
 export const getHospitalById = async (req, res) => {
   try {
-    const hospital = await Hospital.findById(req.params.id);
+    const hospital = await User.findOne({ _id: req.params.id, role: 'hospital' });
 
     if (!hospital) {
       return res.status(404).json({ success: false, message: "Hospital not found" });
@@ -48,11 +48,14 @@ export const createHospital = async (req, res) => {
       return res.status(400).json({ success: false, message: validationError });
     }
 
-    const hospital = await Hospital.create({
+    const hospital = await User.create({
       name: req.body.name,
-      location: req.body.location,
-      contact: req.body.contact,
+      address: req.body.address,
+      city: req.body.city,
+      mobile: req.body.mobile,
       email: req.body.email,
+      password: req.body.password,
+      role: 'hospital',
     });
 
     return res.status(201).json({ success: true, message: "Hospital created successfully", hospital });
@@ -69,14 +72,14 @@ export const updateHospital = async (req, res) => {
     }
 
     const updatePayload = {};
-    for (const field of ["name", "location", "contact", "email"]) {
-      if (typeof req.body[field] !== "undefined") {
+    for (const field of ["name", "address", "city", "mobile", "email", "password"]) {
+      if (typeof req.body[field] !== "undefined" && req.body[field] !== "") {
         updatePayload[field] = req.body[field];
       }
     }
 
-    const hospital = await Hospital.findByIdAndUpdate(
-      req.params.id,
+    const hospital = await User.findOneAndUpdate(
+      { _id: req.params.id, role: 'hospital' },
       updatePayload,
       { new: true, runValidators: true }
     );
@@ -93,7 +96,7 @@ export const updateHospital = async (req, res) => {
 
 export const deleteHospital = async (req, res) => {
   try {
-    const hospital = await Hospital.findByIdAndDelete(req.params.id);
+    const hospital = await User.findOneAndDelete({ _id: req.params.id, role: 'hospital' });
 
     if (!hospital) {
       return res.status(404).json({ success: false, message: "Hospital not found" });

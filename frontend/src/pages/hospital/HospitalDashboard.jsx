@@ -267,8 +267,9 @@ export default function HospitalDashboard() {
                   </Marker>
                 )}
 
-                {/* Destination Hospital */}
-                {trackingAlert.hospital?.location && (
+                {/* Destination Hospital (requires geocoding from address) */}
+                {/*
+                {trackingAlert.hospital?.address && (
                   <Marker position={[trackingAlert.hospital.location.latitude, trackingAlert.hospital.location.longitude]} icon={hospitalIcon}>
                     <Popup>
                       <div className="p-1">
@@ -278,6 +279,7 @@ export default function HospitalDashboard() {
                     </Popup>
                   </Marker>
                 )}
+                */}
 
                 {/* Ambulance Location (Live) */}
                 {ambulanceLocations[trackingAlert._id] && (
@@ -304,8 +306,9 @@ export default function HospitalDashboard() {
                       weight={3}
                       opacity={0.6}
                     />
-                    {/* Trail from current to hospital */}
-                    {trackingAlert.hospital?.location && (
+                    {/* Trail from current to hospital (requires geocoding) */}
+                    {/*
+                    {trackingAlert.hospital?.address && (
                       <Polyline
                         positions={[
                           [ambulanceLocations[trackingAlert._id].lat, ambulanceLocations[trackingAlert._id].lng],
@@ -317,6 +320,7 @@ export default function HospitalDashboard() {
                         opacity={0.4}
                       />
                     )}
+                    */}
                   </>
                 )}
               </MapContainer>

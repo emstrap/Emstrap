@@ -136,7 +136,7 @@ function NotificationCard({ notification, onDismiss }) {
             <span className="text-base">🏥</span>
             <div className="min-w-0">
               <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 truncate">{hospital.name}</p>
-              {hospital.location && <p className="text-xs text-emerald-600/70 dark:text-emerald-500/70 truncate">{hospital.location}</p>}
+              {hospital.address && <p className="text-xs text-emerald-600/70 dark:text-emerald-500/70 truncate">{hospital.address}{hospital.city ? `, ${hospital.city}` : ""}</p>}
             </div>
           </div>
         )}
