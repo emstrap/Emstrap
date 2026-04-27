@@ -12,7 +12,8 @@ export default function AdminSidebar() {
     { name: "Emergencies", path: "/admin/emergencies" },
     { name: "Bookings", path: "/admin/bookings" },
     { name: "Hospitals", path: "/admin/hospitals" },
-    { name: "Ambulance", path: "/admin/ambulance" }
+    { name: "Ambulance", path: "/admin/ambulance" },
+    { name: "Police", path: "/admin/police" }
   ];
 
   const handleLogout = async () => {

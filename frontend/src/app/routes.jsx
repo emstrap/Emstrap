@@ -21,6 +21,7 @@ const AdminEmergencies = lazy(() => import("../pages/admin/AdminEmergencies"));
 const AdminBookings = lazy(() => import("../pages/admin/AdminBookings"));
 const Hospital = lazy(() => import("../pages/admin/Hospital"));
 const AdminAmbulance = lazy(() => import("../pages/admin/AdminAmbulance"));
+const AdminPolice = lazy(() => import("../pages/admin/AdminPolice"));
 
 const HospitalLayout = lazy(() => import("../pages/hospital/HospitalLayout"));
 const HospitalDashboard = lazy(() => import("../pages/hospital/HospitalDashboard"));
@@ -115,6 +116,12 @@ export default function AppRoutes() {
         <Route path="/admin/ambulance" element={
           <ProtectedRoute role="admin">
             <AdminAmbulance />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/admin/police" element={
+          <ProtectedRoute role="admin">
+            <AdminPolice />
           </ProtectedRoute>
         } />
 

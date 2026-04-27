@@ -1,10 +1,11 @@
 import Emergency from "../models/emergencyrequest.model.js";
-import Police from "../models/police.model.js";
+import User from "../models/user.model.js";
 
 const isValidEmail = (email) => /[^\s@]+@[^\s@]+\.[^\s@]+/.test(email);
 
 const validatePolicePayload = (payload, isPartial = false) => {
-    const requiredFields = ["name", "station", "contact", "email"];
+    const requiredFields = ["name", "mobile", "email", "address", "city"];
+    if (!isPartial) requiredFields.push("password");
 
     for (const field of requiredFields) {
         if (!isPartial && !String(payload[field] || "").trim()) {
@@ -14,6 +15,10 @@ const validatePolicePayload = (payload, isPartial = false) => {
 
     if (payload.email && !isValidEmail(payload.email)) {
         return "Please provide a valid email address";
+    }
+
+    if (payload.role && !["police", "police_hq"].includes(payload.role)) {
+        return "Invalid role specified";
     }
 
     return null;
@@ -27,18 +32,16 @@ export const getActiveEmergencies = async (req, res) => {
             requestType: "EMERGENCY"
         };
 
-        // If the user is a standard police station (field unit), restrict to 24h recent cases.
-        // If they are police_hq, let them see everything.
         if (req.user.role === "police") {
             const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
             query.createdAt = { $gte: oneDayAgo };
         }
 
         const emergencies = await Emergency.find(query)
-        .populate("user", "name mobile")
-        .populate("ambulance", "name mobile vehicleNumber")
-        .populate("hospital", "name location contact email")
-        .sort({ createdAt: -1 });
+            .populate("user", "name mobile")
+            .populate("ambulance", "name mobile vehicleNumber")
+            .populate("hospital", "name address city mobile email")
+            .sort({ createdAt: -1 });
 
         res.status(200).json({ success: true, emergencies });
     } catch (error) {
@@ -46,12 +49,11 @@ export const getActiveEmergencies = async (req, res) => {
     }
 };
 
-// Fetch ALL emergencies as police cases (all statuses)
+// Fetch ALL emergencies as police cases
 export const getPoliceCases = async (req, res) => {
     try {
         const query = { requestType: "EMERGENCY" };
 
-        // Standard police stations see only last 7 days; police_hq sees everything
         if (req.user.role === "police") {
             const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
             query.createdAt = { $gte: sevenDaysAgo };
@@ -60,7 +62,7 @@ export const getPoliceCases = async (req, res) => {
         const cases = await Emergency.find(query)
             .populate("user", "name mobile email address city")
             .populate("ambulance", "name mobile vehicleNumber")
-            .populate("hospital", "name location contact email")
+            .populate("hospital", "name address city mobile email")
             .sort({ createdAt: -1 });
 
         res.status(200).json({ success: true, cases });
@@ -69,7 +71,6 @@ export const getPoliceCases = async (req, res) => {
     }
 };
 
-// Update case status from police dashboard
 export const updateCaseStatus = async (req, res) => {
     try {
         const { id } = req.params;
@@ -77,13 +78,13 @@ export const updateCaseStatus = async (req, res) => {
 
         const validStatuses = ["PENDING", "AMBULANCE_ACCEPTED", "COMPLETED", "CANCELLED"];
         if (!validStatuses.includes(status)) {
-            return res.status(400).json({ success: false, message: `Invalid status. Must be one of: ${validStatuses.join(", ")}` });
+            return res.status(400).json({ success: false, message: `Invalid status` });
         }
 
         const updated = await Emergency.findByIdAndUpdate(id, { status }, { new: true })
             .populate("user", "name mobile email address city")
             .populate("ambulance", "name mobile vehicleNumber")
-            .populate("hospital", "name location contact email");
+            .populate("hospital", "name address city mobile email");
 
         if (!updated) {
             return res.status(404).json({ success: false, message: "Case not found" });
@@ -97,7 +98,7 @@ export const updateCaseStatus = async (req, res) => {
 
 export const getPoliceRecords = async (req, res) => {
     try {
-        const police = await Police.find().sort({ createdAt: -1 });
+        const police = await User.find({ role: { $in: ["police", "police_hq"] } }).sort({ createdAt: -1 });
         return res.status(200).json({ success: true, police });
     } catch (error) {
         return res.status(500).json({ success: false, message: "Error fetching police records", error: error.message });
@@ -106,7 +107,7 @@ export const getPoliceRecords = async (req, res) => {
 
 export const getPoliceById = async (req, res) => {
     try {
-        const police = await Police.findById(req.params.id);
+        const police = await User.findOne({ _id: req.params.id, role: { $in: ["police", "police_hq"] } });
 
         if (!police) {
             return res.status(404).json({ success: false, message: "Police record not found" });
@@ -125,15 +126,22 @@ export const createPoliceRecord = async (req, res) => {
             return res.status(400).json({ success: false, message: validationError });
         }
 
-        const police = await Police.create({
+        const police = await User.create({
             name: req.body.name,
-            station: req.body.station,
-            contact: req.body.contact,
+            mobile: req.body.mobile,
             email: req.body.email,
+            password: req.body.password,
+            address: req.body.address,
+            city: req.body.city,
+            role: req.body.role || "police",
+            isEmailVerified: true,
         });
 
         return res.status(201).json({ success: true, message: "Police record created successfully", police });
     } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({ success: false, message: "A user with this email already exists" });
+        }
         return res.status(500).json({ success: false, message: "Error creating police record", error: error.message });
     }
 };
@@ -146,16 +154,18 @@ export const updatePoliceRecord = async (req, res) => {
         }
 
         const updatePayload = {};
-        for (const field of ["name", "station", "contact", "email"]) {
+        for (const field of ["name", "mobile", "email", "address", "city", "role", "password"]) {
             if (typeof req.body[field] !== "undefined") {
+                if (field === "password" && !req.body[field]) continue;
                 updatePayload[field] = req.body[field];
             }
         }
 
-        const police = await Police.findByIdAndUpdate(req.params.id, updatePayload, {
-            new: true,
-            runValidators: true,
-        });
+        const police = await User.findOneAndUpdate(
+            { _id: req.params.id, role: { $in: ["police", "police_hq"] } },
+            updatePayload,
+            { new: true, runValidators: true }
+        );
 
         if (!police) {
             return res.status(404).json({ success: false, message: "Police record not found" });
@@ -163,13 +173,16 @@ export const updatePoliceRecord = async (req, res) => {
 
         return res.status(200).json({ success: true, message: "Police record updated successfully", police });
     } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({ success: false, message: "A user with this email already exists" });
+        }
         return res.status(500).json({ success: false, message: "Error updating police record", error: error.message });
     }
 };
 
 export const deletePoliceRecord = async (req, res) => {
     try {
-        const police = await Police.findByIdAndDelete(req.params.id);
+        const police = await User.findOneAndDelete({ _id: req.params.id, role: { $in: ["police", "police_hq"] } });
 
         if (!police) {
             return res.status(404).json({ success: false, message: "Police record not found" });

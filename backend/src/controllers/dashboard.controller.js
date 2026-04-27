@@ -18,13 +18,14 @@ export const getAlerts = async (req, res) => {
 
 export const getStats = async (req, res) => {
   try {
-    const [totalAlerts, activeAlerts, totalHospitals, totalBookings, totalUsers, totalAmbulanceDrivers] = await Promise.all([
+    const [totalAlerts, activeAlerts, totalHospitals, totalBookings, totalUsers, totalAmbulanceDrivers, totalPolice] = await Promise.all([
       Emergency.countDocuments(),
       Emergency.countDocuments({ status: { $in: ["PENDING", "AMBULANCE_ACCEPTED"] } }),
       User.countDocuments({ role: 'hospital' }),
       Booking.countDocuments(),
       User.countDocuments(),
       User.countDocuments({ role: 'ambulance_driver' }),
+      User.countDocuments({ role: { $in: ['police', 'police_hq'] } }),
     ]);
 
     return res.status(200).json({
@@ -36,6 +37,7 @@ export const getStats = async (req, res) => {
         totalBookings,
         totalUsers,
         totalAmbulances: totalAmbulanceDrivers,
+        totalPolice,
       },
     });
   } catch (error) {
@@ -45,12 +47,13 @@ export const getStats = async (req, res) => {
 
 export const getOverviewStats = async (req, res) => {
   try {
-    const [users, bookings, hospitals, emergencies, liveAmbulances] = await Promise.all([
+    const [users, bookings, hospitals, emergencies, liveAmbulances, police] = await Promise.all([
       User.countDocuments(),
       Booking.countDocuments(),
       User.countDocuments({ role: 'hospital' }),
       Emergency.countDocuments(),
       User.countDocuments({ role: 'ambulance_driver', driverStatus: "LIVE" }),
+      User.countDocuments({ role: { $in: ['police', 'police_hq'] } }),
     ]);
 
     return res.status(200).json({
@@ -59,6 +62,7 @@ export const getOverviewStats = async (req, res) => {
       hospitals,
       emergencies,
       liveAmbulances,
+      police,
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Error fetching overview stats", error: error.message });

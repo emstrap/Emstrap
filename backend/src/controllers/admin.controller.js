@@ -156,11 +156,12 @@ export const getAdminStats = async (req, res) => {
         const buckets = buildBucketSequence(range, now);
         const startDate = buckets[0]?.date || new Date(now);
 
-        const [usersMap, bookingsMap, hospitalsMap, emergenciesMap] = await Promise.all([
+        const [usersMap, bookingsMap, hospitalsMap, emergenciesMap, policeMap] = await Promise.all([
             aggregateTimeline(User, range, startDate, now, { role: 'user' }),
             aggregateTimeline(Booking, range, startDate, now),
             aggregateTimeline(User, range, startDate, now, { role: 'hospital' }),
-            aggregateTimeline(Emergency, range, startDate, now)
+            aggregateTimeline(Emergency, range, startDate, now),
+            aggregateTimeline(User, range, startDate, now, { role: { $in: ['police', 'police_hq'] } })
         ]);
 
         const data = buckets.map((bucket) => ({
@@ -168,7 +169,8 @@ export const getAdminStats = async (req, res) => {
             users: usersMap.get(bucket.key) || 0,
             bookings: bookingsMap.get(bucket.key) || 0,
             hospitals: hospitalsMap.get(bucket.key) || 0,
-            emergencies: emergenciesMap.get(bucket.key) || 0
+            emergencies: emergenciesMap.get(bucket.key) || 0,
+            police: policeMap.get(bucket.key) || 0
         }));
 
         return res.status(200).json({

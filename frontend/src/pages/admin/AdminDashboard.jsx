@@ -43,6 +43,13 @@ const overviewItems = [
     helper: "Emergency requests",
     stroke: "#ef4444",
   },
+  {
+    key: "police",
+    title: "Police",
+    accent: "bg-purple-500",
+    helper: "Police units",
+    stroke: "#a855f7",
+  },
 ];
 
 const rangeOptions = [
@@ -60,6 +67,7 @@ const defaultStats = {
   bookings: 0,
   hospitals: 0,
   emergencies: 0,
+  police: 0,
 };
 
 const toNumber = (value) => {
@@ -72,6 +80,7 @@ const extractOverviewStats = (payload) => ({
   bookings: toNumber(payload?.stats?.bookings ?? payload?.bookings),
   hospitals: toNumber(payload?.stats?.hospitals ?? payload?.hospitals),
   emergencies: toNumber(payload?.stats?.emergencies ?? payload?.emergencies),
+  police: toNumber(payload?.stats?.police ?? payload?.police),
 });
 
 const normalizeChartData = (payload) => {
@@ -84,6 +93,7 @@ const normalizeChartData = (payload) => {
       bookings: toNumber(row?.bookings),
       hospitals: toNumber(row?.hospitals),
       emergencies: toNumber(row?.emergencies),
+      police: toNumber(row?.police),
     }))
     .filter((row) => row.label);
 };
