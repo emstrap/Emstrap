@@ -147,7 +147,7 @@ export default function Hospital() {
   return (
     <AdminLayout
       title="Hospital Management"
-      description="Create, view, update, and remove hospital records used by emergency dispatch."
+      description="Create, view, update, and remove hospital records."
       actions={
         <button
           type="button"

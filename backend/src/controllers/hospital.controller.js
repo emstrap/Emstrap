@@ -56,6 +56,7 @@ export const createHospital = async (req, res) => {
       email: req.body.email,
       password: req.body.password,
       role: 'hospital',
+      isEmailVerified: true,
     });
 
     return res.status(201).json({ success: true, message: "Hospital created successfully", hospital });
