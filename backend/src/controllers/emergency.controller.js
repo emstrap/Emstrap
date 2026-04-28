@@ -32,7 +32,7 @@ export const assignHospital = async (req, res) => {
 
     const updated = await emergencyRequestSchema.findByIdAndUpdate(
       id,
-      { hospital: hospitalId, status: "AMBULANCE_ACCEPTED" },
+      { hospital: hospitalId, status: "EN_ROUTE_TO_HOSPITAL" },
       { new: true }
     )
       .populate("user", "name mobile email address city")
@@ -41,8 +41,19 @@ export const assignHospital = async (req, res) => {
 
     const io = getIO();
 
-    // Notify the specific hospital room and all police
-    io.to("hospital").emit("hospital_alert", { request: updated, hospitalSelected: true });
+    // Notify ONLY the specific hospital with FULL details
+    io.to(`hospital_${hospitalId}`).emit("hospital_alert", { request: updated, hospitalSelected: true });
+    
+    // Still notify all hospitals that this request is handled by a specific hospital (lite version)
+    io.to("hospital").emit("hospital_alert", { 
+      request: { 
+        _id: updated._id, 
+        status: updated.status, 
+        hospital: { _id: updated.hospital._id, name: updated.hospital.name } 
+      }, 
+      isLite: true 
+    });
+
     io.to("police").emit("police_new_case", { request: updated, hospitalSelected: true });
     io.to("police").emit("police_alert", { request: updated });
 
@@ -56,6 +67,37 @@ export const assignHospital = async (req, res) => {
     });
 
     res.status(200).json({ success: true, data: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const markArrived = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const request = await emergencyRequestSchema.findById(id);
+    if (!request) {
+      return res.status(404).json({ success: false, message: "Emergency request not found" });
+    }
+
+    if (request.ambulance?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "Only the assigned driver can mark arrival" });
+    }
+
+    request.status = "ARRIVED_AT_LOCATION";
+    await request.save();
+
+    const populated = await emergencyRequestSchema.findById(id)
+      .populate("user", "name mobile email address city")
+      .populate("ambulance", "name email mobile vehicleNumber");
+
+    const io = getIO();
+    // Notify user and police
+    io.to(`request_${id}`).emit("driver_arrived", { requestId: id });
+    io.to("police").emit("police_alert", { request: populated, status: "ARRIVED" });
+
+    res.status(200).json({ success: true, data: populated });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -113,7 +155,17 @@ export const createEmergencyRequest = async (req, res) => {
     // 3️⃣ Emit to all ambulances, hospitals, and police
     const io = getIO();
     io.to("ambulance").emit("new_emergency_request", populatedRequest);
-    io.to("hospital").emit("hospital_alert", { request: populatedRequest });
+    
+    // For hospitals, send a "lite" version without user details or exact location if not assigned
+    const liteRequest = {
+      _id: populatedRequest._id,
+      requestType: populatedRequest.requestType,
+      status: populatedRequest.status,
+      createdAt: populatedRequest.createdAt,
+      // No user details, no exact location
+    };
+    io.to("hospital").emit("hospital_alert", { request: liteRequest, isLite: true });
+    
     io.to("police").emit("police_new_case", { request: populatedRequest });
 
     res.status(201).json({
@@ -167,7 +219,7 @@ export const acceptEmergency = async (req, res) => {
       { 
         status: "AMBULANCE_ACCEPTED", 
         ambulance: req.user._id,
-        hospital: hospitalId
+        // hospital: hospitalId // REMOVED: Hospital will be assigned after arrival
       },
       { new: true }
     ).populate("user", "name mobile email address city")
@@ -201,7 +253,15 @@ export const acceptEmergency = async (req, res) => {
 
     // Notify Hospitals & Police only for EMERGENCY type
     if (request.requestType === "EMERGENCY") {
-      io.to("hospital").emit("hospital_alert", { request });
+      // Send lite alert to all hospitals that an ambulance is assigned
+      io.to("hospital").emit("hospital_alert", { 
+        request: { 
+          _id: request._id, 
+          status: request.status, 
+          ambulance: request.ambulance 
+        }, 
+        isLite: true 
+      });
       io.to("police").emit("police_new_case", { request });
       io.to("police").emit("police_alert", { request });
     }
@@ -329,7 +389,7 @@ export const getDriverHistory = async (req, res) => {
 
     let acceptedQuery = {
       ambulance: driverId,
-      status: { $in: ["AMBULANCE_ACCEPTED", "COMPLETED"] }
+      status: { $in: ["AMBULANCE_ACCEPTED", "ARRIVED_AT_LOCATION", "EN_ROUTE_TO_HOSPITAL", "COMPLETED"] }
     };
 
     let rejectedQuery = {

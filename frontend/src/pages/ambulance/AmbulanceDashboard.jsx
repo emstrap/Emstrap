@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
 import { API_URL } from "../../services/api";
-import { getDriverHistory, acceptEmergency, declineEmergency, cancelEmergency, getHospitals, assignHospital, completeEmergencyAPI } from "../../services/api";
+import { getDriverHistory, acceptEmergency, declineEmergency, cancelEmergency, getHospitals, assignHospital, completeEmergencyAPI, markArrivedAPI } from "../../services/api";
 import API from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import Navbar from "../../components/layout/Navbar";
@@ -158,7 +158,7 @@ export default function AmbulanceDashboard() {
   useEffect(() => {
     if (!socket || acceptedHistory.length === 0) return;
     
-    const active = acceptedHistory.find(r => r.status === "AMBULANCE_ACCEPTED");
+    const active = acceptedHistory.find(r => ["AMBULANCE_ACCEPTED", "ARRIVED_AT_LOCATION", "EN_ROUTE_TO_HOSPITAL"].includes(r.status));
     if (active && !watchIdRef.current) {
         console.log("Resuming tracking for active assignment:", active._id);
         startTracking(active._id);
@@ -253,6 +253,18 @@ export default function AmbulanceDashboard() {
     }
   };
 
+  const handleArrived = async () => {
+    if (!currentAssignment) return;
+    const loadingToast = toast.loading("Marking arrival...");
+    try {
+      await markArrivedAPI(currentAssignment._id);
+      toast.success("Arrival marked! Please select a destination hospital.", { id: loadingToast });
+      fetchHistory();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to mark arrival", { id: loadingToast });
+    }
+  };
+
   const openHospitalPicker = async () => {
     setHospitalPickerOpen(true);
     if (hospitals.length === 0) {
@@ -341,7 +353,7 @@ export default function AmbulanceDashboard() {
   };
 
   // The currently assigned emergency the driver is en route to
-  const currentAssignment = acceptedHistory.find(req => req.status === "AMBULANCE_ACCEPTED") || null;
+  const currentAssignment = acceptedHistory.find(req => ["AMBULANCE_ACCEPTED", "ARRIVED_AT_LOCATION", "EN_ROUTE_TO_HOSPITAL"].includes(req.status)) || null;
 
   return (
     <>
@@ -365,24 +377,39 @@ export default function AmbulanceDashboard() {
                 </div>
                 <div className="text-white flex-1 min-w-0">
                   <h3 className="font-bold text-base truncate">
-                    {currentAssignment.requestType === "EMERGENCY"
-                      ? `En Route: ${currentAssignment.hospital?.name || "Select a Hospital"}`
-                      : "Booking in Progress"}
+                    {currentAssignment.status === "AMBULANCE_ACCEPTED" 
+                      ? "En Route to Patient"
+                      : currentAssignment.status === "ARRIVED_AT_LOCATION"
+                        ? "Arrived at Patient Location"
+                        : `Heading to: ${currentAssignment.hospital?.name || "Hospital"}`}
                   </h3>
                   <p className="text-sm opacity-90 truncate">
-                    {currentAssignment.requestType === "EMERGENCY"
-                      ? (currentAssignment.hospital?.location || "Tap \"Select Hospital\" to assign")
-                      : "Driving to pickup location"}
+                    {currentAssignment.status === "AMBULANCE_ACCEPTED"
+                      ? "Navigating to pickup site..."
+                      : currentAssignment.status === "ARRIVED_AT_LOCATION"
+                        ? "Waiting to select hospital"
+                        : (currentAssignment.hospital?.address || "Emergency transport in progress")}
                   </p>
                 </div>
                 <div className="flex flex-col gap-1 ml-auto shrink-0">
                   {currentAssignment.requestType === "EMERGENCY" && (
-                    <button
-                      onClick={openHospitalPicker}
-                      className="text-xs bg-white text-green-700 px-3 py-1.5 rounded-full font-bold shadow-sm text-center hover:bg-green-50 transition-colors"
-                    >
-                      🏥 {currentAssignment.hospital ? "Change" : "Select"} Hospital
-                    </button>
+                    <>
+                      {currentAssignment.status === "AMBULANCE_ACCEPTED" ? (
+                        <button
+                          onClick={handleArrived}
+                          className="text-xs bg-white text-blue-700 px-3 py-1.5 rounded-full font-bold shadow-sm text-center hover:bg-blue-50 transition-colors"
+                        >
+                          📍 Mark Arrived
+                        </button>
+                      ) : (
+                        <button
+                          onClick={openHospitalPicker}
+                          className="text-xs bg-white text-green-700 px-3 py-1.5 rounded-full font-bold shadow-sm text-center hover:bg-green-50 transition-colors"
+                        >
+                          🏥 {currentAssignment.hospital ? "Change" : "Select"} Hospital
+                        </button>
+                      )}
+                    </>
                   )}
                   <Link to="/booking-history" className="text-xs bg-white/20 text-white px-3 py-1.5 rounded-full font-bold shadow-sm text-center hover:bg-white/30 transition-colors">
                     Details

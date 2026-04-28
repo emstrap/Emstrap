@@ -37,6 +37,10 @@ export const initSocket = (server) => {
     // Hospital joins hospital room
     socket.on("join_hospital", (data) => {
       socket.join("hospital");
+      if (data.hospitalId) {
+        socket.join(`hospital_${data.hospitalId}`);
+        console.log(`Hospital ${data.hospitalId} joined its specific room`);
+      }
       console.log(`Hospital joined: ${socket.id}`);
     });
 

@@ -94,6 +94,11 @@ export const cancelEmergency = async (id) => {
   return res.data;
 };
 
+export const markArrivedAPI = async (id) => {
+  const res = await API.put(`/api/emergency/${id}/mark-arrived`);
+  return res.data;
+};
+
 export const completeEmergencyAPI = async (id) => {
   const res = await API.put(`/api/emergency/${id}/complete`);
   return res.data;

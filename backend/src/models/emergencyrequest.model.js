@@ -23,6 +23,8 @@ const emergencyRequestSchema = new mongoose.Schema(
       enum: [
         "PENDING",
         "AMBULANCE_ACCEPTED",
+        "ARRIVED_AT_LOCATION",
+        "EN_ROUTE_TO_HOSPITAL",
         "COMPLETED",
         "CANCELLED"
       ],

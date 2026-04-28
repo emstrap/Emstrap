@@ -31,7 +31,10 @@ const hospitalIcon = L.divIcon({
   iconAnchor: [20, 20]
 });
 
+import { useAuth } from "../../context/AuthContext";
+
 export default function HospitalDashboard() {
+  const { user } = useAuth();
   const [alerts, setAlerts] = useState([]);
   const [stats, setStats] = useState({
     totalAlerts: 0,
@@ -69,16 +72,23 @@ export default function HospitalDashboard() {
 
     const socketUrl = API_URL || window.location.origin;
     const newSocket = io(socketUrl, { withCredentials: true });
-    newSocket.emit("join_hospital", {});
+    
+    if (user?._id) {
+      newSocket.emit("join_hospital", { hospitalId: user._id });
+    } else {
+      newSocket.emit("join_hospital", {});
+    }
 
     newSocket.on("hospital_alert", (data) => {
       setAlerts((prev) => {
-        if (prev.some((a) => a._id === data.request._id)) {
-          // If it's a hospital selection update, replace the existing record
-          if (data.hospitalSelected) {
-            return prev.map((a) => a._id === data.request._id ? data.request : a);
+        const exists = prev.find((a) => a._id === data.request._id);
+        if (exists) {
+          // If we received a full update (not lite), replace it
+          if (!data.isLite) {
+             return prev.map((a) => a._id === data.request._id ? data.request : a);
           }
-          return prev;
+          // If it's a status update in a lite alert, update only status
+          return prev.map((a) => a._id === data.request._id ? { ...a, ...data.request } : a);
         }
         return [data.request, ...prev];
       });
