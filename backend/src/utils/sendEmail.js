@@ -16,7 +16,8 @@ const sendEmail = async (options) => {
                 },
                 tls: {
                     rejectUnauthorized: false
-                }
+                },
+                family: 4 // Force IPv4 to prevent ENETUNREACH errors on hosts like Render
             };
         } else {
             // Default to Gmail with port 465 (secure) to avoid timeouts on platforms that block port 587
@@ -27,7 +28,8 @@ const sendEmail = async (options) => {
                 auth: {
                     user: process.env.EMAIL_USER,
                     pass: process.env.EMAIL_PASS
-                }
+                },
+                family: 4 // Force IPv4 to prevent ENETUNREACH errors on hosts like Render
             };
         }
     } else {
