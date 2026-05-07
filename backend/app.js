@@ -45,7 +45,8 @@ app.use("/api/police", policeRoutes);
 app.use("/api/ambulances", ambulanceRoutes);
 app.use("/api/hospitals", hospitalRoutes);
 
-app.use((req, res) => {
+// Root route to check API status
+app.get("/", (req, res) => {
   const isConnected = mongoose.connection.readyState === 1;
   res.status(200).json({
     success: true,
@@ -55,6 +56,10 @@ app.use((req, res) => {
       connected: isConnected
     }
   });
+});
+
+// Catch-all route for undefined routes
+app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: "Route not found"
