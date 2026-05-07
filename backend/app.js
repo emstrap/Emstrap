@@ -34,17 +34,6 @@ app.use(json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(cookieParser());
 
-app.get("/api/test", (req, res) => {
-    const isConnected = mongoose.connection.readyState === 1;
-    res.status(200).json({
-        success: true,
-        message: "API is running",
-        timestamp: new Date().toISOString(),
-        database: {
-            connected: isConnected
-        }
-    });
-});
 
 app.use("/api/emergency", emergencyRoutes)
 app.use("/api", dashboardRoutes);
@@ -57,18 +46,27 @@ app.use("/api/ambulances", ambulanceRoutes);
 app.use("/api/hospitals", hospitalRoutes);
 
 app.use((req, res) => {
-    res.status(404).json({
-        success: false,
-        message: "Route not found"
-    });
+  const isConnected = mongoose.connection.readyState === 1;
+  res.status(200).json({
+    success: true,
+    message: "API is running",
+    timestamp: new Date().toISOString(),
+    database: {
+      connected: isConnected
+    }
+  });
+  res.status(404).json({
+    success: false,
+    message: "Route not found"
+  });
 });
 
 app.use((error, req, res, next) => {
-    const statusCode = error?.statusCode || 500;
-    res.status(statusCode).json({
-        success: false,
-        message: error?.message || "Internal server error"
-    });
+  const statusCode = error?.statusCode || 500;
+  res.status(statusCode).json({
+    success: false,
+    message: error?.message || "Internal server error"
+  });
 });
 
 export default app;

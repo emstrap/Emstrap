@@ -5,13 +5,31 @@ const sendEmail = async (options) => {
     let transporterConfig;
 
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-        transporterConfig = {
-            service: process.env.EMAIL_SERVICE || 'gmail',
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            }
-        };
+        if (process.env.EMAIL_HOST) {
+            transporterConfig = {
+                host: process.env.EMAIL_HOST,
+                port: process.env.EMAIL_PORT || 465,
+                secure: process.env.EMAIL_PORT == 465 || process.env.EMAIL_SECURE === 'true',
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASS
+                },
+                tls: {
+                    rejectUnauthorized: false
+                }
+            };
+        } else {
+            // Default to Gmail with port 465 (secure) to avoid timeouts on platforms that block port 587
+            transporterConfig = {
+                host: 'smtp.gmail.com',
+                port: 465,
+                secure: true,
+                auth: {
+                    user: process.env.EMAIL_USER,
+                    pass: process.env.EMAIL_PASS
+                }
+            };
+        }
     } else {
         // Dev mode without SMTP credentials logs the email content to console.
         transporterConfig = {
